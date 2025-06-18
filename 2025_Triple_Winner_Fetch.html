@@ -74,7 +74,7 @@
     }
 
     th.sortable::after {
-      content: ' \21C5';
+      content: ' ⇅';
       font-size: 0.7em;
       color: #666;
     }
@@ -143,6 +143,7 @@
     const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
     let fullData = [];
+    let allWeeksData = [];
     let currentSort = { index: null, direction: 1 };
 
     const weekFiles = [
@@ -158,13 +159,14 @@
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.allSettled(
-          weekFiles.map(file => fetch(file).then(res => res.ok ? res.json() : Promise.reject(`${file} not OK`)))
-        ).then(results => {
+        Promise.allSettled(weekFiles.map(file =>
+          fetch(file).then(res => res.ok ? res.json() : Promise.reject(`${file} not OK`))
+        )).then(results => {
           const successful = results
             .filter(r => r.status === "fulfilled" && r.value && r.value.values)
             .flatMap(r => r.value.values);
           fullData = successful;
+          allWeeksData = [...successful];
           afterDataLoad();
         }).catch(error => {
           console.error('Error loading week files:', error);
@@ -267,7 +269,7 @@
               currentSort.index = i;
               currentSort.direction = 1;
             }
-            renderTable(fullData);
+            renderTable(filtered);
           });
         }
 
@@ -302,9 +304,8 @@
     }
 
     weekSelect.addEventListener('change', () => {
-      loadWeek(weekSelect.value);
-      dateSelect.value = 'all';
-      meetSelect.value = 'all';
+      const selectedWeek = weekSelect.value;
+      loadWeek(selectedWeek);
     });
 
     dateSelect.addEventListener('change', () => {
@@ -318,7 +319,8 @@
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      loadWeek('all');
+      fullData = [...allWeeksData];
+      afterDataLoad();
     }
 
     // Initial load
