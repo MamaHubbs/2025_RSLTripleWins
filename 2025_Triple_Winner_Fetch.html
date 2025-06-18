@@ -114,6 +114,13 @@
     </div>
 
     <div class="dropdown-box">
+      <label for="divisionSelect">Select Division:</label>
+      <select id="divisionSelect">
+        <option value="all">All Divisions</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
       <label for="meetDateSelect">Select Meet Date:</label>
       <select id="meetDateSelect">
         <option value="all">All Dates</option>
@@ -142,8 +149,37 @@
     const weekSelect = document.getElementById('weekSelect');
     const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
+    const divisionSelect = document.getElementById('divisionSelect');
     let fullData = [];
     let currentSort = { index: null, direction: 1 };
+
+    const divisionMap = {
+      "Massad YMCA": "Battlefield",
+      "Hampton Oaks": "Battlefield",
+      "Woodlands": "Battlefield",
+      "Fawn Lake": "Battlefield",
+      "Spotswood": "Battlefield",
+      "Curtis Park": "Battlefield",
+      "Leeland Station": "Patriot",
+      "Austin Ridge": "Patriot",
+      "Lake of the Woods": "Patriot",
+      "Lee's Hill": "Patriot",
+      "Aquia Harbour": "Patriot",
+      "Dahlgren": "Patriot",
+      "Fox Point": "Patriot",
+      "Fredericksburg CC": "American",
+      "Ferry Farm": "American",
+      "Chancellor": "American",
+      "Hopyard": "American",
+      "Caroline": "American",
+      "Spotsy Y": "American",
+      "Grafton": "National",
+      "College Heights": "National",
+      "Salem Fields": "National",
+      "Lake Wilderness": "National",
+      "Eden Estates": "National",
+      "Idlewild": "National"
+    };
 
     const weekFiles = [
       "2025resultsweek01.json",
@@ -158,9 +194,11 @@
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
-          .then(allData => {
-            fullData = allData.filter(d => d.status === "fulfilled" && d.value.values).flatMap(d => d.value.values);
+        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.json())))
+          .then(allResults => {
+            fullData = allResults
+              .filter(result => result.status === 'fulfilled')
+              .flatMap(result => result.value.values);
             afterDataLoad();
           });
       } else {
@@ -186,6 +224,7 @@
       currentSort = { index: null, direction: 1 };
       populateDateDropdown(fullData);
       populateMeetDropdown(fullData);
+      populateDivisionDropdown(fullData);
       renderTable(fullData);
     }
 
@@ -213,9 +252,26 @@
       });
     }
 
+    function populateDivisionDropdown(data) {
+      const teams = [...new Set(data.map(row => row[2]))];
+      const divisions = new Set();
+      teams.forEach(team => {
+        if (divisionMap[team]) divisions.add(divisionMap[team]);
+      });
+      divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
+      [...divisions].sort().forEach(div => {
+        const opt = document.createElement('option');
+        opt.value = div;
+        opt.textContent = div;
+        divisionSelect.appendChild(opt);
+      });
+    }
+
     function renderTable(data) {
       const filterDate = dateSelect.value;
       const filterMeet = meetSelect.value;
+      const filterDivision = divisionSelect.value;
+
       const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
       const sortableCols = [0, 1, 2];
 
@@ -225,6 +281,9 @@
       }
       if (filterMeet !== 'all') {
         filtered = filtered.filter(row => row[6] === filterMeet);
+      }
+      if (filterDivision !== 'all') {
+        filtered = filtered.filter(row => divisionMap[row[2]] === filterDivision);
       }
 
       if (currentSort.index !== null) {
@@ -301,15 +360,16 @@
       renderTable(fullData);
     });
     meetSelect.addEventListener('change', () => renderTable(fullData));
+    divisionSelect.addEventListener('change', () => renderTable(fullData));
 
     function clearFilters() {
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
+      divisionSelect.value = 'all';
       loadWeek('all');
     }
 
-    // Initial load
     loadWeek('all');
   </script>
 </body>
