@@ -114,6 +114,13 @@
     </div>
 
     <div class="dropdown-box">
+      <label for="meetDateSelect">Select Meet Date:</label>
+      <select id="meetDateSelect">
+        <option value="all">All Dates</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
       <label for="divisionSelect">Select Division:</label>
       <select id="divisionSelect">
         <option value="all">All Divisions</option>
@@ -121,9 +128,9 @@
     </div>
 
     <div class="dropdown-box">
-      <label for="meetDateSelect">Select Meet Date:</label>
-      <select id="meetDateSelect">
-        <option value="all">All Dates</option>
+      <label for="teamSelect">Select Team:</label>
+      <select id="teamSelect">
+        <option value="all">All Teams</option>
       </select>
     </div>
 
@@ -150,10 +157,11 @@
     const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
     const divisionSelect = document.getElementById('divisionSelect');
+    const teamSelect = document.getElementById('teamSelect');
     let fullData = [];
     let currentSort = { index: null, direction: 1 };
 
-    const divisionMap = {
+    const teamDivisionMap = {
       "Massad YMCA": "Battlefield",
       "Hampton Oaks": "Battlefield",
       "Woodlands": "Battlefield",
@@ -194,11 +202,9 @@
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.json())))
-          .then(allResults => {
-            fullData = allResults
-              .filter(result => result.status === 'fulfilled')
-              .flatMap(result => result.value.values);
+        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+          .then(results => {
+            fullData = results.flatMap(r => r.value?.values || []);
             afterDataLoad();
           });
       } else {
@@ -225,6 +231,7 @@
       populateDateDropdown(fullData);
       populateMeetDropdown(fullData);
       populateDivisionDropdown(fullData);
+      populateTeamDropdown(fullData);
       renderTable(fullData);
     }
 
@@ -253,13 +260,9 @@
     }
 
     function populateDivisionDropdown(data) {
-      const teams = [...new Set(data.map(row => row[2]))];
-      const divisions = new Set();
-      teams.forEach(team => {
-        if (divisionMap[team]) divisions.add(divisionMap[team]);
-      });
+      const uniqueDivisions = [...new Set(data.map(row => teamDivisionMap[row[2]]).filter(Boolean))];
       divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
-      [...divisions].sort().forEach(div => {
+      uniqueDivisions.forEach(div => {
         const opt = document.createElement('option');
         opt.value = div;
         opt.textContent = div;
@@ -267,24 +270,28 @@
       });
     }
 
+    function populateTeamDropdown(data) {
+      const uniqueTeams = [...new Set(data.map(row => row[2]))];
+      teamSelect.innerHTML = '<option value="all">All Teams</option>';
+      uniqueTeams.forEach(team => {
+        const opt = document.createElement('option');
+        opt.value = team;
+        opt.textContent = team;
+        teamSelect.appendChild(opt);
+      });
+    }
+
     function renderTable(data) {
+      let filtered = data;
       const filterDate = dateSelect.value;
       const filterMeet = meetSelect.value;
       const filterDivision = divisionSelect.value;
+      const filterTeam = teamSelect.value;
 
-      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
-      const sortableCols = [0, 1, 2];
-
-      let filtered = data;
-      if (filterDate !== 'all') {
-        filtered = filtered.filter(row => row[5] === filterDate);
-      }
-      if (filterMeet !== 'all') {
-        filtered = filtered.filter(row => row[6] === filterMeet);
-      }
-      if (filterDivision !== 'all') {
-        filtered = filtered.filter(row => divisionMap[row[2]] === filterDivision);
-      }
+      if (filterDate !== 'all') filtered = filtered.filter(row => row[5] === filterDate);
+      if (filterMeet !== 'all') filtered = filtered.filter(row => row[6] === filterMeet);
+      if (filterDivision !== 'all') filtered = filtered.filter(row => teamDivisionMap[row[2]] === filterDivision);
+      if (filterTeam !== 'all') filtered = filtered.filter(row => row[2] === filterTeam);
 
       if (currentSort.index !== null) {
         filtered.sort((a, b) => {
@@ -305,12 +312,13 @@
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
+      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
+      const sortableCols = [0, 1, 2];
       const headerRow = document.createElement('tr');
 
       headers.forEach((h, i) => {
         const th = document.createElement('th');
         th.textContent = h;
-
         if (sortableCols.includes(i)) {
           th.classList.add('sortable');
           th.addEventListener('click', () => {
@@ -323,7 +331,6 @@
             renderTable(fullData);
           });
         }
-
         headerRow.appendChild(th);
       });
 
@@ -332,7 +339,6 @@
 
       const tbody = document.createElement('tbody');
       let groupIndex = 0;
-
       for (const group of Object.values(grouped)) {
         const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
         group.forEach((row, i) => {
@@ -361,12 +367,14 @@
     });
     meetSelect.addEventListener('change', () => renderTable(fullData));
     divisionSelect.addEventListener('change', () => renderTable(fullData));
+    teamSelect.addEventListener('change', () => renderTable(fullData));
 
     function clearFilters() {
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      divisionSelect.value = 'all';
+      divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
+      teamSelect.innerHTML = '<option value="all">All Teams</option>';
       loadWeek('all');
     }
 
