@@ -120,31 +120,6 @@
             padding-bottom: 8px;
             border-bottom: 1px solid #eee;
         }
-        .meet-scores-table { /* This style is now largely unused for the main display */
-            width: auto;
-            margin: 5px auto 0 auto; 
-            border-collapse: collapse;
-            font-size: 0.9em; 
-        }
-        .meet-scores-table td {
-            padding: 2px 8px;
-            border: none; 
-            text-align: center;
-        }
-        .meet-scores-table .score-value {
-            font-weight: bold;
-            color: #333; 
-        }
-        .meet-scores-table .winner-score {
-            color: #28a745; 
-        }
-        .winning-team-text {
-            color: #28a745;
-        }
-        .winning-checkmark {
-            color: #28a745; 
-            margin-left: 3px; 
-        }
         .division-header {
             font-size: 1.1em;
             font-weight: bold;
@@ -247,15 +222,6 @@
             .alternate-row-group {
                 background-color: #f2f2f2 !important;
             }
-            .meet-scores-table .winner-score {
-                color: black !important;
-            }
-            .winning-team-text {
-                color: black !important;
-            }
-            .winning-checkmark {
-                color: black !important;
-            }
             .triple-winner-table th .sort-status-text { /* Hide the indicator text in print */
                 display: none !important; 
             }
@@ -292,16 +258,11 @@
                 <label for="divisionFilter">Filter by Division:</label>
                 <select id="divisionFilter"></select>
             </div>
-            <div>
-                <label for="showScoresToggle">Show Scores:</label>
-                <input type="checkbox" id="showScoresToggle">
-            </div>
         </div>
 
         <div class="button-group">
             <button id="printReportBtn" class="action-button print-button">Print Current Report (as PDF)</button>
             <button id="downloadTripleWinnersCsvBtn" class="action-button download-button">Download Triple Winners CSV</button>
-            <button id="downloadTeamScoresCsvBtn" class="action-button download-button">Download Team Scores CSV</button>
             <button id="clearFiltersBtn" class="action-button clear-button">Clear All Filters</button>
         </div>
 
@@ -354,12 +315,9 @@
         const reportOutputDiv = document.getElementById('reportOutput');
         const printReportBtn = document.getElementById('printReportBtn');
         const downloadTripleWinnersCsvBtn = document.getElementById('downloadTripleWinnersCsvBtn');
-        const downloadTeamScoresCsvBtn = document.getElementById('downloadTeamScoresCsvBtn');
-        const showScoresToggle = document.getElementById('showScoresToggle'); 
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
         let currentTripleWinnersForCSV = [];
-        let currentTeamScoresForCSV = [];
         let currentReportFileName = 'RSL_Triple_Winner_Report';
 
         // Global variable to store the calculated season start date
@@ -619,7 +577,6 @@
             const selectedMeetName = meetNameFilterSelect.value; // This now includes (EXH) if present
             const selectedTeam = teamFilterSelect.value; 
             const selectedDivision = divisionFilterSelect.value;
-            const showScores = showScoresToggle.checked; 
 
             let filteredMeets = swimMeetsData;
             let reportHtml = '';
@@ -693,81 +650,12 @@
                 
                 let currentDivisionHeader = null;
 
-                sortedMeets.forEach(meet => {
-                    const meetDivision = teamDivisions[meet.team1] || teamDivisions[meet.team2];
-                    const weekInfo = getWeekInfo(meet.date); // Get week info for the current meet
+ sortedMeets.forEach(meet => {
+    const meetDivision = teamDivisions[meet.team1] || teamDivisions[meet.team2];
+    const weekInfo = getWeekInfo(meet.date); // (Unused, but OK)
 
-                    // ONLY display division header AND meet info if showScoresToggle is CHECKED
-                    if (showScores) { 
-                        // Display division header if it changes or if no specific division is filtered
-                        if (meetDivision && meetDivision !== currentDivisionHeader && (!selectedDivision || selectedDivision === "All Divisions")) {
-                            reportHtml += `<div class="division-header">${meetDivision} Division</div>`;
-                            currentDivisionHeader = meetDivision;
-                        }
-
-                        let winnerNameDisplay, winnerScore, loserNameDisplay, loserScore;
-                        const checkmark = '&#10003;'; 
-
-                        // Determine and apply (H) or (A) suffixes for display
-                        const team1HADisplay = (meet.homeTeam && meet.team1 === meet.homeTeam) ? ' (H)' : ((meet.awayTeam && meet.team1 === meet.awayTeam) ? ' (A)' : '');
-                        const team2HADisplay = (meet.homeTeam && meet.team2 === meet.homeTeam) ? ' (H)' : ((meet.awayTeam && meet.team2 === meet.awayTeam) ? ' (A)' : '');
-                        
-                        const team1Display = `${meet.team1}${team1HADisplay}`;
-                        const team2Display = `${meet.team2}${team2HADisplay}`;
-
-                        // Determine winner and loser based on the 'winner' property (which is now just the team name)
-                        const isTeam1Winner = meet.winner === meet.team1;
-
-                        if (isTeam1Winner) {
-                            winnerNameDisplay = team1Display;
-                            winnerScore = meet.score1;
-                            loserNameDisplay = team2Display;
-                            loserScore = meet.score2;
-                        } else {
-                            winnerNameDisplay = team2Display;
-                            winnerScore = meet.score2;
-                            loserNameDisplay = team1Display;
-                            loserScore = meet.score1;
-                        }
-                        
-                        // Construct the full meet identifier with (EXH) and Week #
-                        const meetExhSuffix = meet.isExhibition ? ' (EXH)' : '';
-                        
-                        let scoreLineHtml = '';
-                        const isTeamFilterActive = (selectedTeam && selectedTeam !== "All Teams");
-
-                        if (isTeamFilterActive && (meet.team1 === selectedTeam || meet.team2 === selectedTeam)) {
-                            // If a specific team is filtered, display only that team's info
-                            const teamIsWinner = meet.winner === selectedTeam; // Winner string no longer contains (EXH)
-                            const displayedTeamName = (meet.team1 === selectedTeam) ? team1Display : team2Display;
-                            const displayedTeamScore = (meet.team1 === selectedTeam) ? meet.score1 : meet.score2;
-                            const scoreClass = teamIsWinner ? 'winner-score winning-team-text' : 'score-value';
-                            const displayedCheckmark = teamIsWinner ? `<span class="winning-checkmark">${checkmark}</span>` : '';
-
-                            scoreLineHtml = `<p>Week ${weekInfo.value}: ${displayedTeamName} <span class="${scoreClass}">${displayedTeamScore}</span> ${displayedCheckmark} (${meet.date})${meetExhSuffix}</p>`;
-                        } else {
-                            // Default display (Winner vs Loser)
-                            scoreLineHtml = `<p>Week ${weekInfo.value}: <span class="winner-score winning-team-text">${winnerScore}</span> <span class="winning-team-text">${winnerNameDisplay}</span> <span class="winning-checkmark">${checkmark}</span> at ${loserNameDisplay} <span class="score-value">${loserScore}</span> (${meet.date})${meetExhSuffix}</p>`;
-                        }
-
-                        reportHtml += `
-                            <div class="meet-info">
-                                ${scoreLineHtml}
-                            </div>
-                        `;
-                        currentTeamScoresForCSV.push({
-                           date: meet.date,
-                           team1: meet.team1,
-                           score1: meet.score1,
-                           team2: meet.team2,
-                           score2: meet.score2, // Ensure score2 is captured
-                           winner: meet.winner, // Keep original winner for CSV
-                           isExhibition: meet.isExhibition // Include for CSV if needed
-                        });
-                    }
-                    
-                    allTripleWinners = allTripleWinners.concat(meet.tripleWinners);
-                });
+    allTripleWinners = allTripleWinners.concat(meet.tripleWinners);
+});
 
                 // Final filtering of triple winners by team (if selected)
                 if (selectedTeam && selectedTeam !== "All Teams") {
