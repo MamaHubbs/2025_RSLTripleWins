@@ -143,6 +143,7 @@
     const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
     let fullData = [];
+    let allWeeksData = [];
     let currentSort = { index: null, direction: 1 };
 
     const weekFiles = [
@@ -161,6 +162,7 @@
         Promise.all(weekFiles.map(file => fetch(file).then(r => r.json())))
           .then(allData => {
             fullData = allData.flatMap(d => d.values);
+            allWeeksData = fullData;
             afterDataLoad();
           });
       } else {
@@ -306,8 +308,8 @@
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      currentSort = { index: null, direction: 1 };
-      setTimeout(() => loadWeek('all'), 50);
+      fullData = allWeeksData;
+      afterDataLoad();
     }
 
     loadWeek('all');
