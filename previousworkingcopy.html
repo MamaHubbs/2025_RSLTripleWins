@@ -40,6 +40,17 @@
       border-radius: 6px;
     }
 
+    button {
+      padding: 6px 14px;
+      font-size: 0.9em;
+      margin-top: 10px;
+      border-radius: 6px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -90,6 +101,7 @@
     <div class="dropdown-box">
       <label for="weekSelect">Select Week:</label>
       <select id="weekSelect">
+        <option value="all">All Weeks</option>
         <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
         <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
         <option value="2025resultsweek03.json">Week #3 (06/22/2025)</option>
@@ -104,8 +116,19 @@
     <div class="dropdown-box">
       <label for="meetDateSelect">Select Meet Date:</label>
       <select id="meetDateSelect">
+        <option value="all">All Dates</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetNameSelect">Select Meet:</label>
+      <select id="meetNameSelect">
         <option value="all">All Meets</option>
       </select>
+    </div>
+
+    <div class="dropdown-box">
+      <button onclick="clearFilters()">Clear Filters</button>
     </div>
   </div>
 
@@ -118,32 +141,57 @@
   <script>
     const weekSelect = document.getElementById('weekSelect');
     const dateSelect = document.getElementById('meetDateSelect');
+    const meetSelect = document.getElementById('meetNameSelect');
     let fullData = [];
     let currentSort = { index: null, direction: 1 };
 
+    const weekFiles = [
+      "2025resultsweek01.json",
+      "2025resultsweek02.json",
+      "2025resultsweek03.json",
+      "2025resultsweek04.json",
+      "2025resultsweek05.json",
+      "2025resultsweek06.json",
+      "2025resultsweek07.json",
+      "2025resultsweek08.json"
+    ];
+
     function loadWeek(fileName) {
-      fetch(fileName)
-        .then(response => {
-          if (!response.ok) throw new Error('Failed to fetch');
-          return response.json();
-        })
-        .then(data => {
-          document.getElementById('error-message').style.display = 'none';
-          fullData = data.values;
-          currentSort = { index: null, direction: 1 }; // reset sort when new week loads
-          populateDateDropdown(fullData);
-          renderTable(fullData, dateSelect.value);
-        })
-        .catch(error => {
-          console.error('Error loading JSON:', error);
-          document.getElementById('table-container').innerHTML = '';
-          document.getElementById('error-message').style.display = 'block';
-        });
+      if (fileName === "all") {
+        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+          .then(allData => {
+            fullData = allData.filter(d => d.status === "fulfilled" && d.value.values).flatMap(d => d.value.values);
+            afterDataLoad();
+          });
+      } else {
+        fetch(fileName)
+          .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch');
+            return response.json();
+          })
+          .then(data => {
+            fullData = data.values;
+            afterDataLoad();
+          })
+          .catch(error => {
+            console.error('Error loading JSON:', error);
+            document.getElementById('table-container').innerHTML = '';
+            document.getElementById('error-message').style.display = 'block';
+          });
+      }
+    }
+
+    function afterDataLoad() {
+      document.getElementById('error-message').style.display = 'none';
+      currentSort = { index: null, direction: 1 };
+      populateDateDropdown(fullData);
+      populateMeetDropdown(fullData);
+      renderTable(fullData);
     }
 
     function populateDateDropdown(data) {
-      const uniqueDates = [...new Set(data.map(row => row[5]))]; // index 5 = Meet Date
-      dateSelect.innerHTML = '<option value="all">All Meets</option>';
+      const uniqueDates = [...new Set(data.map(row => row[5]))];
+      dateSelect.innerHTML = '<option value="all">All Dates</option>';
       uniqueDates.forEach(date => {
         const opt = document.createElement('option');
         opt.value = date;
@@ -152,29 +200,46 @@
       });
     }
 
-    function renderTable(data, filterDate = 'all') {
+    function populateMeetDropdown(data) {
+      const selectedDate = dateSelect.value;
+      const filtered = selectedDate === "all" ? data : data.filter(r => r[5] === selectedDate);
+      const uniqueMeets = [...new Set(filtered.map(row => row[6]))];
+      meetSelect.innerHTML = '<option value="all">All Meets</option>';
+      uniqueMeets.forEach(meet => {
+        const opt = document.createElement('option');
+        opt.value = meet;
+        opt.textContent = meet;
+        meetSelect.appendChild(opt);
+      });
+    }
+
+    function renderTable(data) {
+      const filterDate = dateSelect.value;
+      const filterMeet = meetSelect.value;
       const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
-      const sortableCols = [0, 1, 2]; // Athlete Name, Age, Team Name
+      const sortableCols = [0, 1, 2];
 
-      let filtered = filterDate === 'all' ? data : data.filter(row => row[5] === filterDate);
+      let filtered = data;
+      if (filterDate !== 'all') {
+        filtered = filtered.filter(row => row[5] === filterDate);
+      }
+      if (filterMeet !== 'all') {
+        filtered = filtered.filter(row => row[6] === filterMeet);
+      }
 
-      // Sort if applicable
       if (currentSort.index !== null) {
         filtered.sort((a, b) => {
           const valA = a[currentSort.index];
           const valB = b[currentSort.index];
-
-          if (typeof valA === 'number') {
-            return currentSort.direction * (valA - valB);
-          } else {
-            return currentSort.direction * valA.localeCompare(valB);
-          }
+          return typeof valA === 'number'
+            ? currentSort.direction * (valA - valB)
+            : currentSort.direction * valA.localeCompare(valB);
         });
       }
 
       const grouped = {};
       filtered.forEach(row => {
-        const key = row[0]; // Athlete Name
+        const key = row[0];
         if (!grouped[key]) grouped[key] = [];
         grouped[key].push(row);
       });
@@ -196,7 +261,7 @@
               currentSort.index = i;
               currentSort.direction = 1;
             }
-            renderTable(fullData, dateSelect.value);
+            renderTable(fullData);
           });
         }
 
@@ -209,44 +274,43 @@
       const tbody = document.createElement('tbody');
       let groupIndex = 0;
 
-      for (const [athlete, groupRows] of Object.entries(grouped)) {
+      for (const group of Object.values(grouped)) {
         const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
-        groupRows.forEach((row, i) => {
+        group.forEach((row, i) => {
           const tr = document.createElement('tr');
           tr.className = cssClass;
-
           row.forEach((cell, colIndex) => {
             const td = document.createElement('td');
-            if (i === 0) {
-              td.innerHTML = colIndex === 0 ? `<strong>${cell}</strong>` : cell;
-            } else {
-              td.textContent = colIndex < 3 ? '' : cell;
-            }
+            td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${cell}</strong>` :
+                           (i !== 0 && colIndex < 3) ? '' : cell;
             tr.appendChild(td);
           });
-
           tbody.appendChild(tr);
         });
-
         groupIndex++;
       }
 
       table.appendChild(tbody);
-      const container = document.getElementById('table-container');
-      container.innerHTML = '';
-      container.appendChild(table);
+      document.getElementById('table-container').innerHTML = '';
+      document.getElementById('table-container').appendChild(table);
     }
 
-    weekSelect.addEventListener('change', () => {
-      loadWeek(weekSelect.value);
-    });
-
+    weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
     dateSelect.addEventListener('change', () => {
-      renderTable(fullData, dateSelect.value);
+      populateMeetDropdown(fullData);
+      renderTable(fullData);
     });
+    meetSelect.addEventListener('change', () => renderTable(fullData));
 
-    // Load first week on page load
-    loadWeek(weekSelect.value);
+    function clearFilters() {
+      weekSelect.value = 'all';
+      dateSelect.innerHTML = '<option value="all">All Dates</option>';
+      meetSelect.innerHTML = '<option value="all">All Meets</option>';
+      loadWeek('all');
+    }
+
+    // Initial load
+    loadWeek('all');
   </script>
 </body>
 </html>
