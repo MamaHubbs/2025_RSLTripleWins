@@ -74,7 +74,7 @@
     }
 
     th.sortable::after {
-      content: ' ⇅';
+      content: ' \21C5';
       font-size: 0.7em;
       color: #666;
     }
@@ -143,21 +143,32 @@
     const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
     let fullData = [];
-    let allWeeksData = [];
     let currentSort = { index: null, direction: 1 };
 
     const weekFiles = [
-      "2025resultsweek01.json"
+      "2025resultsweek01.json",
+      "2025resultsweek02.json",
+      "2025resultsweek03.json",
+      "2025resultsweek04.json",
+      "2025resultsweek05.json",
+      "2025resultsweek06.json",
+      "2025resultsweek07.json",
+      "2025resultsweek08.json"
     ];
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.all(weekFiles.map(file => fetch(file).then(r => r.json())))
-          .then(allData => {
-            fullData = allData.flatMap(d => d.values);
-            allWeeksData = fullData;
-            afterDataLoad();
-          });
+        Promise.allSettled(
+          weekFiles.map(file => fetch(file).then(res => res.ok ? res.json() : Promise.reject(`${file} not OK`)))
+        ).then(results => {
+          const successful = results
+            .filter(r => r.status === "fulfilled" && r.value && r.value.values)
+            .flatMap(r => r.value.values);
+          fullData = successful;
+          afterDataLoad();
+        }).catch(error => {
+          console.error('Error loading week files:', error);
+        });
       } else {
         fetch(fileName)
           .then(response => {
@@ -290,21 +301,27 @@
       document.getElementById('table-container').appendChild(table);
     }
 
-    weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
+    weekSelect.addEventListener('change', () => {
+      loadWeek(weekSelect.value);
+      dateSelect.value = 'all';
+      meetSelect.value = 'all';
+    });
+
     dateSelect.addEventListener('change', () => {
       populateMeetDropdown(fullData);
       renderTable(fullData);
     });
+
     meetSelect.addEventListener('change', () => renderTable(fullData));
 
     function clearFilters() {
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      fullData = allWeeksData;
-      afterDataLoad();
+      loadWeek('all');
     }
 
+    // Initial load
     loadWeek('all');
   </script>
 </body>
