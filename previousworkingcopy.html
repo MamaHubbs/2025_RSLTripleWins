@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>2025 RSL Weekly Triple Winner Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .dropdown-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .dropdown-box {
+      display: inline-block;
+      margin: 0 10px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select {
+      padding: 6px 12px;
+      font-size: 0.9em;
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8em;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e5f1ff;
+    }
+
+    .row-group-even {
+      background-color: #ffffff;
+    }
+
+    .row-group-odd {
+      background-color: #f0f0f0;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>2025 RSL Weekly Triple Winner Report</h1>
+
+  <div class="dropdown-container">
+    <div class="dropdown-box">
+      <label for="weekSelect">Select Week:</label>
+      <select id="weekSelect">
+        <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
+        <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
+        <option value="2025resultsweek03.json">Week #3 (06/22/2025)</option>
+        <option value="2025resultsweek04.json">Week #4 (06/29/2025)</option>
+        <option value="2025resultsweek05.json">Week #5 (07/06/2025)</option>
+        <option value="2025resultsweek06.json">Week #6 (07/13/2025)</option>
+        <option value="2025resultsweek07.json">Week #7 (07/20/2025)</option>
+        <option value="2025resultsweek08.json">Week #8 (07/27/2025)</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetDateSelect">Select Meet Date:</label>
+      <select id="meetDateSelect">
+        <option value="all">All Meets</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="table-container">
+    <p class="error" id="error-message" style="display:none;">
+      Could not load results. Please check back later.
+    </p>
+  </div>
+
+  <script>
+    const weekSelect = document.getElementById('weekSelect');
+    const dateSelect = document.getElementById('meetDateSelect');
+    let fullData = [];
+
+    function loadWeek(fileName) {
+      fetch(fileName)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('error-message').style.display = 'none';
+          fullData = data.values;
+
+          populateDateDropdown(fullData);
+          renderTable(fullData, dateSelect.value);
+        })
+        .catch(error => {
+          console.error('Error loading JSON:', error);
+          document.getElementById('table-container').innerHTML = '';
+          document.getElementById('error-message').style.display = 'block';
+        });
+    }
+
+    function populateDateDropdown(data) {
+      const uniqueDates = [...new Set(data.map(row => row[5]))]; // index 5 = Meet Date
+      dateSelect.innerHTML = '<option value="all">All Meets</option>';
+      uniqueDates.forEach(date => {
+        const opt = document.createElement('option');
+        opt.value = date;
+        opt.textContent = date;
+        dateSelect.appendChild(opt);
+      });
+    }
+
+    function renderTable(data, filterDate = 'all') {
+      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
+
+      const filtered = filterDate === 'all' ? data : data.filter(row => row[5] === filterDate);
+
+      const grouped = {};
+      filtered.forEach(row => {
+        const key = row[0]; // Athlete Name
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      let groupIndex = 0;
+
+      for (const [athlete, groupRows] of Object.entries(grouped)) {
+        const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
+        groupRows.forEach((row, i) => {
+          const tr = document.createElement('tr');
+          tr.className = cssClass;
+
+          row.forEach((cell, colIndex) => {
+            const td = document.createElement('td');
+            if (i === 0) {
+              if (colIndex === 0) {
+                td.innerHTML = `<strong>${cell}</strong>`;
+              } else {
+                td.textContent = cell;
+              }
+            } else {
+              if (colIndex < 3) {
+                td.textContent = '';
+              } else {
+                td.textContent = cell;
+              }
+            }
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        groupIndex++;
+      }
+
+      table.appendChild(tbody);
+      const container = document.getElementById('table-container');
+      container.innerHTML = '';
+      container.appendChild(table);
+    }
+
+    // Events
+    weekSelect.addEventListener('change', () => {
+      loadWeek(weekSelect.value);
+    });
+
+    dateSelect.addEventListener('change', () => {
+      renderTable(fullData, dateSelect.value);
+    });
+
+    // Initial load
+    loadWeek(weekSelect.value);
+  </script>
+</body>
+</html>
