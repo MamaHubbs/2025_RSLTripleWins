@@ -1,53 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>2025 RSL Weekly Triple Winner Report</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f8f8f8;
-      color: #333;
-    }
-    h1 {
-      color: #0056b3;
-      text-align: center;
-      font-size: 1.8em;
-      margin-bottom: 10px;
-    }
-    h2 {
-      text-align: center;
-      font-size: 1.2em;
-      color: #444;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 0.9em;
-    }
-    th, td {
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #e5f1ff;
-    }
-    tbody tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-    .error {
-      color: red;
-      text-align: center;
-      margin-top: 20px;
-    }
-  </style>
-</head>
 <body>
   <h1>2025 RSL Weekly Triple Winner Report</h1>
+
+  <label for="weekSelect"><strong>Select a Week:</strong></label>
+  <select id="weekSelect">
+    <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
+    <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
+    <option value="2025resultsweek03.json">Week #3 (06/22/2025)</option>
+    <option value="2025resultsweek04.json">Week #4 (06/29/2025)</option>
+    <option value="2025resultsweek05.json">Week #5 (07/06/2025)</option>
+    <option value="2025resultsweek06.json">Week #6 (07/13/2025)</option>
+    <option value="2025resultsweek07.json">Week #7 (07/20/2025)</option>
+    <option value="2025resultsweek08.json">Week #8 (07/27/2025)</option>
+  </select>
 
   <div id="table-container">
     <p class="error" id="error-message" style="display:none;">
@@ -55,49 +19,61 @@
     </p>
   </div>
 
-<script>
-  fetch('./2025SwimMeetsData.json')
-    .then(response => {
-      if (!response.ok) throw new Error('Failed to fetch');
-      return response.json();
-    })
-    .then(data => {
-      console.log("Loaded JSON:", data); // Debug
-      const headers = data.fields;
-      const rows = data.values;
+  <script>
+    const select = document.getElementById('weekSelect');
 
-      if (!headers || !Array.isArray(rows)) throw new Error("Unexpected data structure");
+    function loadWeek(fileName) {
+      fetch(fileName)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('error-message').style.display = 'none';
+          const headers = data.fields;
+          const rows = data.values;
 
-      const table = document.createElement('table');
+          const table = document.createElement('table');
 
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+          const thead = document.createElement('thead');
+          const headerRow = document.createElement('tr');
+          headers.forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
+          });
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
 
-      const tbody = document.createElement('tbody');
-      rows.forEach(row => {
-        const tr = document.createElement('tr');
-        row.forEach(cell => {
-          const td = document.createElement('td');
-          td.textContent = cell;
-          tr.appendChild(td);
+          const tbody = document.createElement('tbody');
+          rows.forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+              const td = document.createElement('td');
+              td.textContent = cell;
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+
+          const container = document.getElementById('table-container');
+          container.innerHTML = ''; // clear previous
+          container.appendChild(table);
+        })
+        .catch(error => {
+          console.error('Error loading JSON:', error);
+          document.getElementById('table-container').innerHTML = '';
+          document.getElementById('error-message').style.display = 'block';
         });
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
+    }
 
-      document.getElementById('table-container').appendChild(table);
-    })
-    .catch(error => {
-      console.error('Error loading JSON:', error); // Debug
-      document.getElementById('error-message').style.display = 'block';
+    // Load default week on page load
+    loadWeek(select.value);
+
+    // Load selected week on dropdown change
+    select.addEventListener('change', () => {
+      loadWeek(select.value);
     });
-</script>
+  </script>
 </body>
-</html>
