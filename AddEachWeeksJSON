@@ -1,0 +1,62 @@
+<body>
+  <h1>2025 RSL Weekly Triple Winner Report</h1>
+
+  <div class="dropdown-container">
+    <div class="dropdown-box">
+      <label for="weekSelect">Select Week:</label>
+      <select id="weekSelect">
+        <option value="all">All Weeks</option>
+        <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
+        <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
+        <option value="2025resultsweek03.json">Week #3 (06/22/2025)</option>
+        <option value="2025resultsweek04.json">Week #4 (06/29/2025)</option>
+        <option value="2025resultsweek05.json">Week #5 (07/06/2025)</option>
+        <option value="2025resultsweek06.json">Week #6 (07/13/2025)</option>
+        <option value="2025resultsweek07.json">Week #7 (07/20/2025)</option>
+        <option value="2025resultsweek08.json">Week #8 (07/27/2025)</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetDateSelect">Select Meet Date:</label>
+      <select id="meetDateSelect">
+        <option value="all">All Dates</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetNameSelect">Select Meet:</label>
+      <select id="meetNameSelect">
+        <option value="all">All Meets</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <button onclick="clearFilters()">Clear Filters</button>
+    </div>
+  </div>
+
+  <div id="table-container">
+    <p class="error" id="error-message" style="display:none;">
+      Could not load results. Please check back later.
+    </p>
+  </div>
+
+  <script>
+    const weekSelect = document.getElementById('weekSelect');
+    const dateSelect = document.getElementById('meetDateSelect');
+    const meetSelect = document.getElementById('meetNameSelect');
+    let fullData = [];
+    let allWeeksData = [];
+    let currentSort = { index: null, direction: 1 };
+
+    const weekFiles = [
+      "2025resultsweek01.json",
+      "2025resultsweek02.json",
+      "2025resultsweek03.json",
+      "2025resultsweek04.json",
+      "2025resultsweek05.json",
+      "2025resultsweek06.json",
+      "2025resultsweek07.json",
+      "2025resultsweek08.json"
+    ];
