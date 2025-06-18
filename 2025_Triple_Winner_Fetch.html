@@ -159,18 +159,14 @@
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file =>
-          fetch(file).then(res => res.ok ? res.json() : Promise.reject(`${file} not OK`))
-        )).then(results => {
-          const successful = results
-            .filter(r => r.status === "fulfilled" && r.value && r.value.values)
-            .flatMap(r => r.value.values);
-          fullData = successful;
-          allWeeksData = [...successful];
-          afterDataLoad();
-        }).catch(error => {
-          console.error('Error loading week files:', error);
-        });
+        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+          .then(results => {
+            allWeeksData = results
+              .filter(r => r.status === "fulfilled" && r.value && r.value.values)
+              .flatMap(r => r.value.values);
+            fullData = allWeeksData;
+            afterDataLoad();
+          });
       } else {
         fetch(fileName)
           .then(response => {
@@ -178,7 +174,7 @@
             return response.json();
           })
           .then(data => {
-            fullData = data.values;
+            fullData = data.values || [];
             afterDataLoad();
           })
           .catch(error => {
@@ -269,7 +265,7 @@
               currentSort.index = i;
               currentSort.direction = 1;
             }
-            renderTable(filtered);
+            renderTable(fullData);
           });
         }
 
@@ -304,8 +300,9 @@
     }
 
     weekSelect.addEventListener('change', () => {
-      const selectedWeek = weekSelect.value;
-      loadWeek(selectedWeek);
+      dateSelect.innerHTML = '<option value="all">All Dates</option>';
+      meetSelect.innerHTML = '<option value="all">All Meets</option>';
+      loadWeek(weekSelect.value);
     });
 
     dateSelect.addEventListener('change', () => {
@@ -319,7 +316,7 @@
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      fullData = [...allWeeksData];
+      fullData = allWeeksData;
       afterDataLoad();
     }
 
