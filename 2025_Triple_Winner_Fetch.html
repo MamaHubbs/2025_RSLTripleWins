@@ -271,7 +271,7 @@
     }
 
     function populateTeamDropdown(data) {
-      const uniqueTeams = [...new Set(data.map(row => row[2]))];
+      const uniqueTeams = [...new Set(data.map(row => row[2]))].sort();
       teamSelect.innerHTML = '<option value="all">All Teams</option>';
       uniqueTeams.forEach(team => {
         const opt = document.createElement('option');
