@@ -806,43 +806,8 @@
 
             downloadFile(csvContent, `${currentReportFileName}.csv`, 'text/csv;charset=utf-8;');
         }
-
-        function downloadTeamScoresCSV() {
-            if (currentTeamScoresForCSV.length === 0) {
-                alert("No Team Score data available to download. Please select filters that yield results.");
-                return;
-            }
-
-            const headers = ["Date", "Team 1", "Score 1", "Team 2", "Score 2", "Winner", "Is Exhibition"]; // Added "Is Exhibition" header
-            let csvContent = headers.map(header => `"${header}"`).join(",") + "\n";
-
-            currentTeamScoresForCSV.forEach(meet => {
-                const values = [
-                    `"${meet.date}"`,
-                    `"${meet.team1}"`,
-                    meet.score1,
-                    `"${meet.team2}"`,
-                    meet.score2,
-                    `"${meet.winner}"`,
-                    meet.isExhibition ? "TRUE" : "FALSE" // Output TRUE/FALSE for exhibition status
-                ];
-                csvContent += values.join(",") + "\n";
-            });
+);
             
-            let filename = `Team_Scores`;
-            if (weekFilterSelect.value) filename += `_Week${weekFilterSelect.value}`;
-            if (meetDateSelect.value) filename += `_${meetDateSelect.value.replace(/[^a-zA-Z0-9]/g, '')}`;
-            // If the meet name in the filter includes (EXH), add it to the filename.
-            if (meetNameFilterSelect.value && meetNameFilterSelect.value !== "All Meets") {
-                const filteredMeetNameForFilename = meetNameFilterSelect.value.replace(/[^a-zA-Z0-9\(\)]/g, ''); // Allow parentheses
-                filename += `_${filteredMeetNameForFilename.substring(0, 50)}`; 
-            }
-            if (divisionFilterSelect.value && divisionFilterSelect.value !== "All Divisions") filename += `_${divisionFilterSelect.value.replace(/[^a-zA-Z0-9]/g, '')}`;
-            if (teamFilterSelect.value && teamFilterSelect.value !== "All Teams") filename += `_${teamFilterSelect.value.replace(/[^a-zA-Z0-9]/g, '')}`;
-            
-            filename += '.csv';
-
-            downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
         }
 
         // Helper to check if any filter is selected (used for initial "Please select a week" message)
@@ -864,7 +829,6 @@
             meetNameFilterSelect.value = "";
             teamFilterSelect.value = "";
             divisionFilterSelect.value = "";
-            showScoresToggle.checked = false; // Uncheck the show scores toggle
 
             // Reset sorting to default
             currentSortColumn = 'name';
@@ -880,7 +844,6 @@
         divisionFilterSelect.addEventListener('change', updateCascadingFilters);
         meetNameFilterSelect.addEventListener('change', updateCascadingFilters); 
         teamFilterSelect.addEventListener('change', generateReport);
-        showScoresToggle.addEventListener('change', generateReport); 
         
         // Event listener for table header clicks (for sorting)
         document.addEventListener('click', function(event) {
@@ -903,7 +866,6 @@
             window.print();
         });
         downloadTripleWinnersCsvBtn.addEventListener('click', downloadTripleWinnersCSV);
-        downloadTeamScoresCsvBtn.addEventListener('click', downloadTeamScoresCSV);
         clearFiltersBtn.addEventListener('click', clearAllFilters); // NEW: Event listener for clear filters button
 
         // --- Initial data load and setup ---
