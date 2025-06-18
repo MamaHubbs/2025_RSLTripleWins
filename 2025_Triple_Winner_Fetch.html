@@ -353,17 +353,28 @@ button {
       let groupIndex = 0;
       for (const group of Object.values(grouped)) {
         const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
-        group.forEach((row, i) => {
-          const tr = document.createElement('tr');
-          tr.className = cssClass;
-          row.forEach((cell, colIndex) => {
-            const td = document.createElement('td');
-            td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${cell}</strong>` :
-                           (i !== 0 && colIndex < 3) ? '' : cell;
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
+group.forEach((row, i) => {
+  const tr = document.createElement('tr');
+  tr.className = cssClass;
+  row.forEach((cell, colIndex) => {
+    const td = document.createElement('td');
+
+    let displayValue = cell;
+    if (colIndex === 5 && typeof cell === 'string') {
+      const dateObj = new Date(cell);
+      if (!isNaN(dateObj)) {
+        const options = { month: 'short', day: '2-digit' };
+        displayValue = dateObj.toLocaleDateString('en-US', options);
+      }
+    }
+
+    td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${displayValue}</strong>` :
+                   (i !== 0 && colIndex < 3) ? '' : displayValue;
+
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
         groupIndex++;
       }
 
