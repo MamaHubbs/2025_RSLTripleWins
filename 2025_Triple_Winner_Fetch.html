@@ -92,8 +92,23 @@ button {
       color: red;
       text-align: center;
       margin-top: 20px;
-    }
-  </style>
+  }
+
+  /* Column width limits and ellipsis overflow */
+  th:nth-child(1), td:nth-child(1) { max-width: 120px; }
+  th:nth-child(2), td:nth-child(2) { max-width: 40px; text-align: center; }
+  th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+  th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+  th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+  th:nth-child(6), td:nth-child(6) { max-width: 90px; }
+  th:nth-child(7), td:nth-child(7) { max-width: 150px; }
+
+  td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
 </head>
 <body>
   <h1>2025 RSL Weekly Triple Winner Report</h1>
