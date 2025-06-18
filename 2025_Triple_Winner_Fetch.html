@@ -74,7 +74,7 @@
     }
 
     th.sortable::after {
-      content: ' \21C5';
+      content: ' ⇅';
       font-size: 0.7em;
       color: #666;
     }
@@ -158,12 +158,10 @@
 
     function loadWeek(fileName) {
       if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.json())))
-          .then(results => {
-            fullData = results
-              .filter(r => r.status === 'fulfilled' && r.value.values)
-              .flatMap(r => r.value.values);
-            resetFilters();
+        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+          .then(allData => {
+            fullData = allData.filter(d => d.status === "fulfilled" && d.value.values).flatMap(d => d.value.values);
+            afterDataLoad();
           });
       } else {
         fetch(fileName)
@@ -172,8 +170,8 @@
             return response.json();
           })
           .then(data => {
-            fullData = data.values || [];
-            resetFilters();
+            fullData = data.values;
+            afterDataLoad();
           })
           .catch(error => {
             console.error('Error loading JSON:', error);
@@ -183,9 +181,9 @@
       }
     }
 
-    function resetFilters() {
-      dateSelect.value = 'all';
-      meetSelect.value = 'all';
+    function afterDataLoad() {
+      document.getElementById('error-message').style.display = 'none';
+      currentSort = { index: null, direction: 1 };
       populateDateDropdown(fullData);
       populateMeetDropdown(fullData);
       renderTable(fullData);
@@ -218,6 +216,8 @@
     function renderTable(data) {
       const filterDate = dateSelect.value;
       const filterMeet = meetSelect.value;
+      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
+      const sortableCols = [0, 1, 2];
 
       let filtered = data;
       if (filterDate !== 'all') {
@@ -243,9 +243,6 @@
         if (!grouped[key]) grouped[key] = [];
         grouped[key].push(row);
       });
-
-      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
-      const sortableCols = [0, 1, 2];
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
