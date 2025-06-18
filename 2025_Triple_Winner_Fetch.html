@@ -190,7 +190,7 @@
     }
 
     function populateDateDropdown(data) {
-      const uniqueDates = [...new Set(data.map(row => row[5]))]; // Meet Date
+      const uniqueDates = [...new Set(data.map(row => row[5]))];
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       uniqueDates.forEach(date => {
         const opt = document.createElement('option');
@@ -203,7 +203,7 @@
     function populateMeetDropdown(data) {
       const selectedDate = dateSelect.value;
       const filtered = selectedDate === "all" ? data : data.filter(r => r[5] === selectedDate);
-      const uniqueMeets = [...new Set(filtered.map(row => row[6]))]; // Meet Name
+      const uniqueMeets = [...new Set(filtered.map(row => row[6]))];
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
@@ -306,10 +306,10 @@
       weekSelect.value = 'all';
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      loadWeek('all');
+      currentSort = { index: null, direction: 1 };
+      setTimeout(() => loadWeek('all'), 50);
     }
 
-    // Initial load
     loadWeek('all');
   </script>
 </body>
