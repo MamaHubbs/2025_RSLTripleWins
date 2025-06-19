@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>2025 RSL Weekly Triple Winner Report - Hampton Oaks</title>
+  <title>2025 Triple Winner Report - Hampton Oaks</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -40,7 +40,7 @@
       margin-bottom: 6px;
     }
 
-    select {
+    select, input[type="text"] {
       padding: 3px 6px;
       font-size: 0.7em;
       border-radius: 4px;
@@ -110,7 +110,7 @@
   </style>
 </head>
 <body>
-  <h1>2025 RSL Weekly Triple Winner Report – Hampton Oaks</h1>
+  <h1>2025 Triple Winners — Hampton Oaks</h1>
 
   <div class="dropdown-container">
     <div class="dropdown-box">
@@ -123,24 +123,16 @@
     </div>
 
     <div class="dropdown-box">
-      <label for="meetDateSelect">Select Meet Date:</label>
-      <select id="meetDateSelect">
-        <option value="all">All Dates</option>
-      </select>
-    </div>
-
-    <div class="dropdown-box">
       <label for="meetNameSelect">Select Meet:</label>
       <select id="meetNameSelect">
         <option value="all">All Meets</option>
       </select>
     </div>
-  </div>
 
-  <div style="text-align: center; margin-top: 10px;">
-    <button onclick="downloadCSV()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Download CSV</button>
-    <button onclick="printPage()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Print PDF</button>
-    <button onclick="clearFilters()" style="padding: 6px 14px; font-size: 0.9em; border-radius: 6px; background-color: #0156B3; color: white; border: none; cursor: pointer;">Clear Filters</button>
+    <div class="dropdown-box">
+      <label for="searchInput">Search Athlete:</label>
+      <input type="text" id="searchInput" placeholder="Enter name...">
+    </div>
   </div>
 
   <div id="table-container">
@@ -151,8 +143,9 @@
 
   <script>
     const weekSelect = document.getElementById('weekSelect');
-    const dateSelect = document.getElementById('meetDateSelect');
     const meetSelect = document.getElementById('meetNameSelect');
+    const searchInput = document.getElementById('searchInput');
+    let fullData = [];
     let weekData = [];
     let currentSort = { index: null, direction: 1 };
 
@@ -165,8 +158,8 @@
       if (fileName === "all") {
         Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
           .then(results => {
-            const merged = results.flatMap(r => r.value?.values || []);
-            weekData = merged.filter(row => row[2] === "Hampton Oaks");
+            fullData = results.flatMap(r => r.value?.values || []);
+            weekData = fullData.filter(row => row[2] === 'Hampton Oaks');
             afterDataLoad();
           });
       } else {
@@ -176,7 +169,8 @@
             return response.json();
           })
           .then(data => {
-            weekData = data.values.filter(row => row[2] === "Hampton Oaks");
+            fullData = data.values || [];
+            weekData = fullData.filter(row => row[2] === 'Hampton Oaks');
             afterDataLoad();
           })
           .catch(error => {
@@ -189,19 +183,7 @@
 
     function afterDataLoad() {
       document.getElementById('error-message').style.display = 'none';
-      currentSort = { index: null, direction: 1 };
-
-      dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-
-      const uniqueDates = [...new Set(weekData.map(row => row[5]))];
-      uniqueDates.forEach(date => {
-        const opt = document.createElement('option');
-        opt.value = date;
-        opt.textContent = date;
-        dateSelect.appendChild(opt);
-      });
-
       const uniqueMeets = [...new Set(weekData.map(row => row[6]))];
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
@@ -209,16 +191,14 @@
         opt.textContent = meet;
         meetSelect.appendChild(opt);
       });
-
-      dateSelect.value = 'all';
-      meetSelect.value = 'all';
       renderTable(weekData);
     }
 
     function renderTable(data) {
       let filtered = [...data];
-      if (dateSelect.value !== 'all') filtered = filtered.filter(row => row[5] === dateSelect.value);
       if (meetSelect.value !== 'all') filtered = filtered.filter(row => row[6] === meetSelect.value);
+      const searchValue = searchInput.value.trim().toLowerCase();
+      if (searchValue) filtered = filtered.filter(row => row[0].toLowerCase().includes(searchValue));
 
       if (currentSort.index !== null) {
         filtered.sort((a, b) => {
@@ -303,32 +283,8 @@
     }
 
     weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
-    dateSelect.addEventListener('change', () => renderTable(weekData));
     meetSelect.addEventListener('change', () => renderTable(weekData));
-
-    function clearFilters() {
-      weekSelect.value = 'all';
-      loadWeek('all');
-    }
-
-    function downloadCSV() {
-      const rows = Array.from(document.querySelectorAll("#table-container table tr"));
-      const csvContent = rows.map(row =>
-        Array.from(row.querySelectorAll("th, td")).map(cell => '"' + cell.textContent.replace(/"/g, '""') + '"').join(",")
-      ).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.setAttribute("href", URL.createObjectURL(blob));
-      link.setAttribute("download", "TripleWinners_HamptonOaks.csv");
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function printPage() {
-      window.print();
-    }
+    searchInput.addEventListener('input', () => renderTable(weekData));
 
     loadWeek('all');
   </script>
