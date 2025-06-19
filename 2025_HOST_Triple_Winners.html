@@ -155,11 +155,11 @@
       "2025resultsweek02.json"
     ];
 
-    function loadAllData() {
+    function loadData() {
       Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
         .then(results => {
-          fullData = results.flatMap(r => r.value?.values || []);
-          populateMeetDropdown();
+          fullData = results.flatMap(r => r.value?.values || []).filter(row => row[2] === 'Hampton Oaks');
+          populateMeetDropdown(fullData);
           renderTable(fullData);
         })
         .catch(error => {
@@ -169,8 +169,8 @@
         });
     }
 
-    function populateMeetDropdown() {
-      const uniqueMeets = [...new Set(fullData.map(row => row[6] + ' (' + row[5] + ')'))];
+    function populateMeetDropdown(data) {
+      const uniqueMeets = [...new Set(data.map(row => row[6]))];
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
@@ -181,29 +181,14 @@
     }
 
     function renderTable(data) {
-      document.getElementById('error-message').style.display = 'none';
-      document.getElementById('no-results').style.display = 'none';
+      const filterMeet = meetSelect.value;
+      const searchName = searchInput.value.toLowerCase();
 
       let filtered = data;
+      if (filterMeet !== 'all') filtered = filtered.filter(row => row[6] === filterMeet);
+      if (searchName) filtered = filtered.filter(row => row[0].toLowerCase().includes(searchName));
 
-      const selectedMeet = meetSelect.value;
-      const searchText = searchInput.value.toLowerCase();
-
-      if (selectedMeet !== 'all') {
-        const [meetName, date] = selectedMeet.split(' (');
-        const cleanedDate = date.replace(')', '');
-        filtered = filtered.filter(row => row[6] + ' (' + row[5] + ')' === selectedMeet);
-      }
-
-      if (searchText) {
-        filtered = filtered.filter(row => row[0].toLowerCase().includes(searchText));
-      }
-
-      if (filtered.length === 0) {
-        document.getElementById('table-container').innerHTML = '';
-        document.getElementById('no-results').style.display = 'block';
-        return;
-      }
+      document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
 
       if (currentSort.index !== null) {
         filtered.sort((a, b) => {
@@ -240,7 +225,7 @@
               currentSort.index = i;
               currentSort.direction = 1;
             }
-            renderTable(filtered);
+            renderTable(fullData);
           });
         }
         headerRow.appendChild(th);
@@ -283,7 +268,7 @@
     meetSelect.addEventListener('change', () => renderTable(fullData));
     searchInput.addEventListener('input', () => renderTable(fullData));
 
-    loadAllData();
+    loadData();
   </script>
 </body>
 </html>
