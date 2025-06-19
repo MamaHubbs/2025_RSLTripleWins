@@ -312,21 +312,16 @@
       });
     }
 
-   function renderTable(data) {
+    function renderTable(data) {
       let filtered = [...data];
       if (dateSelect.value !== 'all') filtered = filtered.filter(row => row[5] === dateSelect.value);
       if (meetSelect.value !== 'all') filtered = filtered.filter(row => row[6] === meetSelect.value);
       if (divisionSelect.value !== 'all') filtered = filtered.filter(row => teamDivisionMap[row[2]] === divisionSelect.value);
       if (teamSelect.value !== 'all') filtered = filtered.filter(row => row[2] === teamSelect.value);
 
-      if (currentSort.index !== null) {
-        filtered.sort((a, b) => {
-          const valA = a[currentSort.index];
-          const valB = b[currentSort.index];
-          return typeof valA === 'number'
-            ? currentSort.direction * (valA - valB)
-            : currentSort.direction * valA.localeCompare(valB);
-        });
+      const search = document.getElementById('athleteSearch')?.value?.trim().toLowerCase();
+      if (search) {
+        filtered = filtered.filter(row => row[0].toLowerCase().includes(search));
       }
 
       const grouped = {};
@@ -383,7 +378,7 @@
               }
             }
             if (i === 0 && colIndex === 0) {
-              td.innerHTML = `<strong>${displayValue}</strong>`;
+td.innerHTML = `<strong>${displayValue}</strong>`;
             } else if (i !== 0 && colIndex < 3) {
               td.innerHTML = '';
             } else {
