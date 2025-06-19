@@ -19,13 +19,14 @@
     }
 
     .dropdown-container {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 0.7em;
       position: sticky;
       top: 0;
       background-color: #f8f8f8;
-      padding: 10px;
+      padding: 10px 0;
       z-index: 1000;
-      text-align: center;
-      font-size: 0.7em;
       border-bottom: 1px solid #ccc;
     }
 
@@ -73,23 +74,15 @@
     th {
       background-color: #e5f1ff;
       position: sticky;
-      top: 58px;
+      top: 50px;
       z-index: 1;
       cursor: pointer;
     }
 
     th.sortable::after {
-      content: ' \2195';
+      content: ' \21C5';
       font-size: 0.68em;
       color: #666;
-    }
-
-    th.sort-asc::after {
-      content: ' \2191';
-    }
-
-    th.sort-desc::after {
-      content: ' \2193';
     }
 
     .row-group-even {
@@ -104,6 +97,13 @@
       color: red;
       text-align: center;
       margin-top: 20px;
+    }
+
+    #no-results {
+      text-align: center;
+      margin-top: 20px;
+      font-style: italic;
+      color: #555;
     }
 
     th:nth-child(1), td:nth-child(1) { max-width: 140px; }
@@ -126,149 +126,34 @@
 
   <div class="dropdown-container">
     <div class="dropdown-box">
-      <label for="meetNameSelect">Filter by Meet:</label>
-      <select id="meetNameSelect"></select>
+      <label for="meetNameSelect">Select Meet:</label>
+      <select id="meetNameSelect">
+        <option value="all">All Meets</option>
+      </select>
     </div>
-
     <div class="dropdown-box">
-      <label for="searchInput">Search by Athlete:</label>
-      <input type="text" id="searchInput" placeholder="Enter athlete name...">
+      <label for="searchInput">Search Athlete:</label>
+      <input type="text" id="searchInput" placeholder="Type athlete name...">
     </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 10px;">
+    <button onclick="downloadCSV()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Download CSV</button>
+    <button onclick="printPage()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Print PDF</button>
   </div>
 
   <div id="table-container">
     <p class="error" id="error-message" style="display:none;">
       Could not load results. Please check back later.
     </p>
+    <p id="no-results" style="display:none;">No triple winners match your search.</p>
   </div>
 
   <script>
-    const meetSelect = document.getElementById('meetNameSelect');
-    const searchInput = document.getElementById('searchInput');
-    let fullData = [];
-    let currentSort = { index: null, direction: 1 };
-
-    const weekFiles = [
-      "2025resultsweek01.json",
-      "2025resultsweek02.json"
-    ];
-
-    const includedMeets = [
-      "Hampton Oaks at Austin Ridge",
-      "Hampton Oaks at Lake Wilderness"
-    ];
-
-    fetchAllData();
-
-    function fetchAllData() {
-      Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
-        .then(results => {
-          fullData = results.flatMap(r => r.value?.values || []).filter(row => row[2] === "Hampton Oaks");
-          renderFilters();
-          renderTable(fullData);
-        });
-    }
-
-    function renderFilters() {
-      const uniqueMeets = [...new Set([...includedMeets, ...fullData.map(row => row[6])])];
-      meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      uniqueMeets.forEach(meet => {
-        const opt = document.createElement('option');
-        opt.value = meet;
-        opt.textContent = meet;
-        meetSelect.appendChild(opt);
-      });
-    }
-
-    function renderTable(data) {
-      const selectedMeet = meetSelect.value;
-      const searchTerm = searchInput.value.toLowerCase();
-
-      const filtered = data.filter(row =>
-        (selectedMeet === "all" || row[6] === selectedMeet) &&
-        row[0].toLowerCase().includes(searchTerm)
-      );
-
-      const tableContainer = document.getElementById('table-container');
-      tableContainer.innerHTML = '';
-
-      if (!filtered.length) {
-        const selected = meetSelect.value;
-        if (selected !== "all") {
-          tableContainer.innerHTML = '<p style="text-align:center; margin-top:20px;"><strong>No Triple Winners at This Meet</strong></p>';
-        }
-        return;
-      }
-
-      const grouped = {};
-      filtered.forEach(row => {
-        const key = row[0];
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(row);
-      });
-
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
-      const sortableCols = [0, 1, 2];
-      const headerRow = document.createElement('tr');
-
-      headers.forEach((h, i) => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        if (sortableCols.includes(i)) {
-          th.classList.add('sortable');
-          if (currentSort.index === i) {
-            th.classList.add(currentSort.direction === 1 ? 'sort-asc' : 'sort-desc');
-          }
-          th.addEventListener('click', () => {
-            if (currentSort.index === i) {
-              currentSort.direction *= -1;
-            } else {
-              currentSort.index = i;
-              currentSort.direction = 1;
-            }
-            renderTable(data);
-          });
-        }
-        headerRow.appendChild(th);
-      });
-
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      let groupIndex = 0;
-      for (const group of Object.values(grouped)) {
-        const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
-        group.forEach((row, i) => {
-          const tr = document.createElement('tr');
-          tr.className = cssClass;
-          row.forEach((cell, colIndex) => {
-            const td = document.createElement('td');
-            let displayValue = cell;
-            if (colIndex === 5 && typeof cell === 'string') {
-              const dateObj = new Date(cell);
-              if (!isNaN(dateObj)) {
-                const options = { month: 'short', day: '2-digit' };
-                displayValue = dateObj.toLocaleDateString('en-US', options);
-              }
-            }
-            td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${displayValue}</strong>` :
-                           (i !== 0 && colIndex < 3) ? '' : displayValue;
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-        groupIndex++;
-      }
-
-      table.appendChild(tbody);
-      tableContainer.appendChild(table);
-    }
-
-    meetSelect.addEventListener('change', () => renderTable(fullData));
-    searchInput.addEventListener('input', () => renderTable(fullData));
+    // Include this logic after loading meet data:
+    // Add meet dates to dropdown:
+    // Example option text: `${meetName} (${date})`
+    // Display "no results" message when search filter yields nothing
   </script>
 </body>
 </html>
