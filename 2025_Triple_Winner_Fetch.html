@@ -233,7 +233,7 @@
       document.getElementById('error-message').style.display = 'none';
       currentSort = { index: null, direction: 1 };
 
-      // Reset and repopulate all dropdowns
+      // Reset dropdowns
       dateSelect.innerHTML = '<option value="all">All Dates</option>';
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
       divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
@@ -244,7 +244,7 @@
       populateDivisionDropdown(fullData);
       populateTeamDropdown(fullData);
 
-      // Reset selected values
+      // Reset selections
       dateSelect.value = 'all';
       meetSelect.value = 'all';
       divisionSelect.value = 'all';
@@ -267,6 +267,7 @@
       const selectedDate = dateSelect.value;
       const filtered = selectedDate === "all" ? data : data.filter(r => r[5] === selectedDate);
       const uniqueMeets = [...new Set(filtered.map(row => row[6]))];
+      meetSelect.innerHTML = '<option value="all">All Meets</option>';
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
         opt.value = meet;
@@ -297,15 +298,10 @@
 
     function renderTable(data) {
       let filtered = data;
-      const filterDate = dateSelect.value;
-      const filterMeet = meetSelect.value;
-      const filterDivision = divisionSelect.value;
-      const filterTeam = teamSelect.value;
-
-      if (filterDate !== 'all') filtered = filtered.filter(row => row[5] === filterDate);
-      if (filterMeet !== 'all') filtered = filtered.filter(row => row[6] === filterMeet);
-      if (filterDivision !== 'all') filtered = filtered.filter(row => teamDivisionMap[row[2]] === filterDivision);
-      if (filterTeam !== 'all') filtered = filtered.filter(row => row[2] === filterTeam);
+      if (dateSelect.value !== 'all') filtered = filtered.filter(row => row[5] === dateSelect.value);
+      if (meetSelect.value !== 'all') filtered = filtered.filter(row => row[6] === meetSelect.value);
+      if (divisionSelect.value !== 'all') filtered = filtered.filter(row => teamDivisionMap[row[2]] === divisionSelect.value);
+      if (teamSelect.value !== 'all') filtered = filtered.filter(row => row[2] === teamSelect.value);
 
       if (currentSort.index !== null) {
         filtered.sort((a, b) => {
@@ -385,6 +381,7 @@
     weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
     dateSelect.addEventListener('change', () => {
       populateMeetDropdown(fullData);
+      meetSelect.value = 'all';
       renderTable(fullData);
     });
     meetSelect.addEventListener('change', () => renderTable(fullData));
