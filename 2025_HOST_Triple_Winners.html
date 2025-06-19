@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>2025 Triple Winner Report - Hampton Oaks</title>
+  <title>2025 RSL Weekly Triple Winner Report</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
+      margin: 20px;
       background-color: #f8f8f8;
       color: #333;
     }
@@ -15,7 +15,7 @@
       text-align: center;
       color: #0156B3;
       font-size: 2em;
-      margin: 20px 0 10px;
+      margin-bottom: 10px;
     }
 
     .dropdown-container {
@@ -23,10 +23,10 @@
       top: 0;
       background-color: #f8f8f8;
       padding: 10px;
+      z-index: 1000;
       text-align: center;
-      z-index: 10;
-      border-bottom: 1px solid #ccc;
       font-size: 0.7em;
+      border-bottom: 1px solid #ccc;
     }
 
     .dropdown-box {
@@ -73,25 +73,23 @@
     th {
       background-color: #e5f1ff;
       position: sticky;
-      top: 50px;
-      z-index: 5;
+      top: 58px;
+      z-index: 1;
       cursor: pointer;
     }
 
     th.sortable::after {
-      content: ' ⇅';
+      content: ' \2195';
       font-size: 0.68em;
       color: #666;
     }
 
-    th.sorted-asc::after {
-      content: ' ↑';
-      color: #333;
+    th.sort-asc::after {
+      content: ' \2191';
     }
 
-    th.sorted-desc::after {
-      content: ' ↓';
-      color: #333;
+    th.sort-desc::after {
+      content: ' \2193';
     }
 
     .row-group-even {
@@ -99,7 +97,7 @@
     }
 
     .row-group-odd {
-      background-color: #f4f4f4;
+      background-color: #f0f0f0;
     }
 
     .error {
@@ -107,31 +105,34 @@
       text-align: center;
       margin-top: 20px;
     }
+
+    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
-  <h1>2025 Triple Winners — Hampton Oaks</h1>
+  <h1>2025 RSL Weekly Triple Winner Report</h1>
 
   <div class="dropdown-container">
     <div class="dropdown-box">
-      <label for="weekSelect">Select Week:</label>
-      <select id="weekSelect">
-        <option value="all">All Weeks</option>
-        <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
-        <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
-      </select>
+      <label for="meetNameSelect">Filter by Meet:</label>
+      <select id="meetNameSelect"></select>
     </div>
 
     <div class="dropdown-box">
-      <label for="meetNameSelect">Select Meet:</label>
-      <select id="meetNameSelect">
-        <option value="all">All Meets</option>
-      </select>
-    </div>
-
-    <div class="dropdown-box">
-      <label for="searchInput">Search Athlete:</label>
-      <input type="text" id="searchInput" placeholder="Enter name...">
+      <label for="searchInput">Search by Athlete:</label>
+      <input type="text" id="searchInput" placeholder="Enter athlete name...">
     </div>
   </div>
 
@@ -142,11 +143,9 @@
   </div>
 
   <script>
-    const weekSelect = document.getElementById('weekSelect');
     const meetSelect = document.getElementById('meetNameSelect');
     const searchInput = document.getElementById('searchInput');
     let fullData = [];
-    let weekData = [];
     let currentSort = { index: null, direction: 1 };
 
     const weekFiles = [
@@ -154,60 +153,51 @@
       "2025resultsweek02.json"
     ];
 
-    function loadWeek(fileName) {
-      if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
-          .then(results => {
-            fullData = results.flatMap(r => r.value?.values || []);
-            weekData = fullData.filter(row => row[2] === 'Hampton Oaks');
-            afterDataLoad();
-          });
-      } else {
-        fetch(fileName)
-          .then(response => {
-            if (!response.ok) throw new Error('Failed to fetch');
-            return response.json();
-          })
-          .then(data => {
-            fullData = data.values || [];
-            weekData = fullData.filter(row => row[2] === 'Hampton Oaks');
-            afterDataLoad();
-          })
-          .catch(error => {
-            console.error('Error loading JSON:', error);
-            document.getElementById('table-container').innerHTML = '';
-            document.getElementById('error-message').style.display = 'block';
-          });
-      }
+    const includedMeets = [
+      "Hampton Oaks at Austin Ridge",
+      "Hampton Oaks at Lake Wilderness"
+    ];
+
+    fetchAllData();
+
+    function fetchAllData() {
+      Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+        .then(results => {
+          fullData = results.flatMap(r => r.value?.values || []).filter(row => row[2] === "Hampton Oaks");
+          renderFilters();
+          renderTable(fullData);
+        });
     }
 
-    function afterDataLoad() {
-      document.getElementById('error-message').style.display = 'none';
+    function renderFilters() {
+      const uniqueMeets = [...new Set([...includedMeets, ...fullData.map(row => row[6])])];
       meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      const uniqueMeets = [...new Set(weekData.map(row => row[6]))];
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
         opt.value = meet;
         opt.textContent = meet;
         meetSelect.appendChild(opt);
       });
-      renderTable(weekData);
     }
 
     function renderTable(data) {
-      let filtered = [...data];
-      if (meetSelect.value !== 'all') filtered = filtered.filter(row => row[6] === meetSelect.value);
-      const searchValue = searchInput.value.trim().toLowerCase();
-      if (searchValue) filtered = filtered.filter(row => row[0].toLowerCase().includes(searchValue));
+      const selectedMeet = meetSelect.value;
+      const searchTerm = searchInput.value.toLowerCase();
 
-      if (currentSort.index !== null) {
-        filtered.sort((a, b) => {
-          const valA = a[currentSort.index];
-          const valB = b[currentSort.index];
-          return typeof valA === 'number'
-            ? currentSort.direction * (valA - valB)
-            : currentSort.direction * valA.localeCompare(valB);
-        });
+      const filtered = data.filter(row =>
+        (selectedMeet === "all" || row[6] === selectedMeet) &&
+        row[0].toLowerCase().includes(searchTerm)
+      );
+
+      const tableContainer = document.getElementById('table-container');
+      tableContainer.innerHTML = '';
+
+      if (!filtered.length) {
+        const selected = meetSelect.value;
+        if (selected !== "all") {
+          tableContainer.innerHTML = '<p style="text-align:center; margin-top:20px;"><strong>No Triple Winners at This Meet</strong></p>';
+        }
+        return;
       }
 
       const grouped = {};
@@ -229,7 +219,7 @@
         if (sortableCols.includes(i)) {
           th.classList.add('sortable');
           if (currentSort.index === i) {
-            th.classList.add(currentSort.direction === 1 ? 'sorted-asc' : 'sorted-desc');
+            th.classList.add(currentSort.direction === 1 ? 'sort-asc' : 'sort-desc');
           }
           th.addEventListener('click', () => {
             if (currentSort.index === i) {
@@ -238,7 +228,7 @@
               currentSort.index = i;
               currentSort.direction = 1;
             }
-            renderTable(weekData);
+            renderTable(data);
           });
         }
         headerRow.appendChild(th);
@@ -249,7 +239,7 @@
 
       const tbody = document.createElement('tbody');
       let groupIndex = 0;
-      Object.values(grouped).forEach(group => {
+      for (const group of Object.values(grouped)) {
         const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
         group.forEach((row, i) => {
           const tr = document.createElement('tr');
@@ -260,33 +250,25 @@
             if (colIndex === 5 && typeof cell === 'string') {
               const dateObj = new Date(cell);
               if (!isNaN(dateObj)) {
-                displayValue = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                const options = { month: 'short', day: '2-digit' };
+                displayValue = dateObj.toLocaleDateString('en-US', options);
               }
             }
-            if (i === 0 && colIndex === 0) {
-              td.innerHTML = `<strong>${displayValue}</strong>`;
-            } else if (i !== 0 && colIndex < 3) {
-              td.innerHTML = '';
-            } else {
-              td.textContent = displayValue;
-            }
+            td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${displayValue}</strong>` :
+                           (i !== 0 && colIndex < 3) ? '' : displayValue;
             tr.appendChild(td);
           });
           tbody.appendChild(tr);
         });
         groupIndex++;
-      });
+      }
 
       table.appendChild(tbody);
-      document.getElementById('table-container').innerHTML = '';
-      document.getElementById('table-container').appendChild(table);
+      tableContainer.appendChild(table);
     }
 
-    weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
-    meetSelect.addEventListener('change', () => renderTable(weekData));
-    searchInput.addEventListener('input', () => renderTable(weekData));
-
-    loadWeek('all');
+    meetSelect.addEventListener('change', () => renderTable(fullData));
+    searchInput.addEventListener('input', () => renderTable(fullData));
   </script>
 </body>
 </html>
