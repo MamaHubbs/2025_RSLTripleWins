@@ -99,13 +99,6 @@
       margin-top: 20px;
     }
 
-    #no-results {
-      text-align: center;
-      margin-top: 20px;
-      font-style: italic;
-      color: #555;
-    }
-
     th:nth-child(1), td:nth-child(1) { max-width: 140px; }
     th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
     th:nth-child(3), td:nth-child(3) { max-width: 100px; }
@@ -196,8 +189,6 @@
       if (athleteQuery) {
         filtered = filtered.filter(row => row[0].toLowerCase().includes(athleteQuery));
       }
-
-      document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
 
       const grouped = {};
       filtered.forEach(row => {
