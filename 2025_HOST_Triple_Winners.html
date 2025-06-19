@@ -1,51 +1,103 @@
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>2025 RSL Weekly Triple Winner Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
 
-.dropdown-container {
+    h1 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .dropdown-container {
       text-align: center;
       margin-bottom: 8px;
       font-size: 0.7em;
-position: sticky;
-top: 0;
-background-color: #f8f8f8;
-      padding: 10px;
+      position: sticky;
+      top: 0;
+      background-color: #f8f8f8;
       padding: 10px 0;
-z-index: 1000;
-      text-align: center;
+      z-index: 1000;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .dropdown-box {
+      display: inline-block;
+      margin: 0 4px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"] {
+      padding: 3px 6px;
       font-size: 0.7em;
-border-bottom: 1px solid #ccc;
-}
+      border-radius: 4px;
+    }
 
-@@ -73,25 +74,17 @@
-th {
-background-color: #e5f1ff;
-position: sticky;
-      top: 58px;
+    button {
+      padding: 4px 8px;
+      font-size: 0.7em;
+      border-radius: 4px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e5f1ff;
+      position: sticky;
       top: 50px;
-z-index: 1;
-cursor: pointer;
-}
+      z-index: 1;
+      cursor: pointer;
+    }
 
-th.sortable::after {
-      content: ' \2195';
+    th.sortable::after {
       content: ' \21C5';
-font-size: 0.68em;
-color: #666;
-}
-
-    th.sort-asc::after {
-      content: ' \2191';
+      font-size: 0.68em;
+      color: #666;
     }
 
-    th.sort-desc::after {
-      content: ' \2193';
+    .row-group-even {
+      background-color: #ffffff;
     }
 
-.row-group-even {
-background-color: #ffffff;
-}
-@@ -106,6 +99,13 @@
-margin-top: 20px;
-}
+    .row-group-odd {
+      background-color: #f0f0f0;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
 
     #no-results {
       text-align: center;
@@ -54,71 +106,68 @@ margin-top: 20px;
       color: #555;
     }
 
-th:nth-child(1), td:nth-child(1) { max-width: 140px; }
-th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
-th:nth-child(3), td:nth-child(3) { max-width: 100px; }
-@@ -126,149 +126,34 @@ <h1>2025 RSL Weekly Triple Winner Report</h1>
+    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
 
-<div class="dropdown-container">
-<div class="dropdown-box">
-      <label for="meetNameSelect">Filter by Meet:</label>
-      <select id="meetNameSelect"></select>
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>2025 RSL Weekly Triple Winner Report</h1>
+
+  <div class="dropdown-container">
+    <div class="dropdown-box">
       <label for="meetNameSelect">Select Meet:</label>
       <select id="meetNameSelect">
         <option value="all">All Meets</option>
       </select>
-</div>
-
-<div class="dropdown-box">
-      <label for="searchInput">Search by Athlete:</label>
-      <input type="text" id="searchInput" placeholder="Enter athlete name...">
+    </div>
+    <div class="dropdown-box">
       <label for="searchInput">Search Athlete:</label>
       <input type="text" id="searchInput" placeholder="Type athlete name...">
-</div>
-</div>
-
-  <div style="text-align: center; margin-top: 10px;">
-    <button onclick="downloadCSV()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Download CSV</button>
-    <button onclick="printPage()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Print PDF</button>
+    </div>
   </div>
 
-<div id="table-container">
-<p class="error" id="error-message" style="display:none;">
-Could not load results. Please check back later.
-</p>
+  <div id="table-container">
+    <p class="error" id="error-message" style="display:none;">
+      Could not load results. Please check back later.
+    </p>
     <p id="no-results" style="display:none;">No triple winners match your search.</p>
-</div>
+  </div>
 
-<script>
+  <script>
     const meetSelect = document.getElementById('meetNameSelect');
     const searchInput = document.getElementById('searchInput');
     let fullData = [];
     let currentSort = { index: null, direction: 1 };
 
-    const weekFiles = [
-      "2025resultsweek01.json",
-      "2025resultsweek02.json"
-    ];
+    fetch('2025resultsweek01.json')
+      .then(response => response.ok ? response.json() : Promise.reject('Failed to load'))
+      .then(data1 => {
+        return fetch('2025resultsweek02.json')
+          .then(response => response.ok ? response.json() : Promise.reject('Failed to load'))
+          .then(data2 => {
+            fullData = [...data1.values, ...data2.values];
+            populateMeetDropdown(fullData);
+            renderTable(fullData);
+          });
+      })
+      .catch(error => {
+        console.error(error);
+        document.getElementById('error-message').style.display = 'block';
+      });
 
-    const includedMeets = [
-      "Hampton Oaks at Austin Ridge",
-      "Hampton Oaks at Lake Wilderness"
-    ];
-
-    fetchAllData();
-
-    function fetchAllData() {
-      Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
-        .then(results => {
-          fullData = results.flatMap(r => r.value?.values || []).filter(row => row[2] === "Hampton Oaks");
-          renderFilters();
-          renderTable(fullData);
-        });
-    }
-
-    function renderFilters() {
-      const uniqueMeets = [...new Set([...includedMeets, ...fullData.map(row => row[6])])];
-      meetSelect.innerHTML = '<option value="all">All Meets</option>';
+    function populateMeetDropdown(data) {
+      const uniqueMeets = [...new Set(data.map(row => `${row[6]} (${new Date(row[5]).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })})`))];
       uniqueMeets.forEach(meet => {
         const opt = document.createElement('option');
         opt.value = meet;
@@ -128,24 +177,18 @@ Could not load results. Please check back later.
     }
 
     function renderTable(data) {
-      const selectedMeet = meetSelect.value;
-      const searchTerm = searchInput.value.toLowerCase();
+      let filtered = data;
+      const meetValue = meetSelect.value;
+      const searchValue = searchInput.value.trim().toLowerCase();
 
-      const filtered = data.filter(row =>
-        (selectedMeet === "all" || row[6] === selectedMeet) &&
-        row[0].toLowerCase().includes(searchTerm)
-      );
+      if (meetValue !== 'all') filtered = filtered.filter(row => `${row[6]} (${new Date(row[5]).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })})` === meetValue);
+      if (searchValue) filtered = filtered.filter(row => row[0].toLowerCase().includes(searchValue));
 
-      const tableContainer = document.getElementById('table-container');
-      tableContainer.innerHTML = '';
+      const container = document.getElementById('table-container');
+      document.getElementById('no-results').style.display = filtered.length ? 'none' : 'block';
+      container.innerHTML = filtered.length ? '' : container.innerHTML;
 
-      if (!filtered.length) {
-        const selected = meetSelect.value;
-        if (selected !== "all") {
-          tableContainer.innerHTML = '<p style="text-align:center; margin-top:20px;"><strong>No Triple Winners at This Meet</strong></p>';
-        }
-        return;
-      }
+      if (!filtered.length) return;
 
       const grouped = {};
       filtered.forEach(row => {
@@ -165,17 +208,9 @@ Could not load results. Please check back later.
         th.textContent = h;
         if (sortableCols.includes(i)) {
           th.classList.add('sortable');
-          if (currentSort.index === i) {
-            th.classList.add(currentSort.direction === 1 ? 'sort-asc' : 'sort-desc');
-          }
           th.addEventListener('click', () => {
-            if (currentSort.index === i) {
-              currentSort.direction *= -1;
-            } else {
-              currentSort.index = i;
-              currentSort.direction = 1;
-            }
-            renderTable(data);
+            currentSort.index === i ? currentSort.direction *= -1 : (currentSort.index = i, currentSort.direction = 1);
+            renderTable(fullData);
           });
         }
         headerRow.appendChild(th);
@@ -197,12 +232,11 @@ Could not load results. Please check back later.
             if (colIndex === 5 && typeof cell === 'string') {
               const dateObj = new Date(cell);
               if (!isNaN(dateObj)) {
-                const options = { month: 'short', day: '2-digit' };
-                displayValue = dateObj.toLocaleDateString('en-US', options);
+                displayValue = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
               }
             }
             td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${displayValue}</strong>` :
-                           (i !== 0 && colIndex < 3) ? '' : displayValue;
+                          (i !== 0 && colIndex === 0) ? '' : displayValue;
             tr.appendChild(td);
           });
           tbody.appendChild(tr);
@@ -211,15 +245,12 @@ Could not load results. Please check back later.
       }
 
       table.appendChild(tbody);
-      tableContainer.appendChild(table);
+      container.innerHTML = '';
+      container.appendChild(table);
     }
 
     meetSelect.addEventListener('change', () => renderTable(fullData));
     searchInput.addEventListener('input', () => renderTable(fullData));
-    // Include this logic after loading meet data:
-    // Add meet dates to dropdown:
-    // Example option text: `${meetName} (${date})`
-    // Display "no results" message when search filter yields nothing
-</script>
+  </script>
 </body>
 </html>
