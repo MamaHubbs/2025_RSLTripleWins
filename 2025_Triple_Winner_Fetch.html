@@ -40,7 +40,7 @@
       margin-bottom: 6px;
     }
 
-    select {
+    select, input[type="text"] {
       padding: 3px 6px;
       font-size: 0.7em;
       border-radius: 4px;
@@ -162,6 +162,11 @@
       <select id="meetNameSelect">
         <option value="all">All Meets</option>
       </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="athleteSearch">Search Athlete:</label>
+      <input type="text" id="athleteSearch" placeholder="Enter athlete name" oninput="renderTable(weekData)" />
     </div>
   </div>
 
