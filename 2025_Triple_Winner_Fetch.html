@@ -3,8 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <title>2025 RSL Weekly Triple Winner Report</title>
-  <style>
-    /* Keep your existing CSS styles here */
+ <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .dropdown-container {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 0.7em;
+    }
+
+    .dropdown-box {
+      display: inline-block;
+      margin: 0 4px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select {
+      padding: 3px 6px;
+      font-size: 0.7em;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 4px 8px;
+      font-size: 0.7em;
+      border-radius: 4px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e5f1ff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      cursor: pointer;
+    }
+
+    th.sortable::after {
+      content: ' ⇅';
+      font-size: 0.68em;
+      color: #666;
+    }
+
+    .row-group-even {
+      background-color: #ffffff;
+    }
+
+    .row-group-odd {
+      background-color: #f0f0f0;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
