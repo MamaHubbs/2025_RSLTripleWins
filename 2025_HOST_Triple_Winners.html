@@ -145,7 +145,145 @@
   </div>
 
   <script>
-    // JavaScript logic previously working for meet dropdown, athlete search, sorting, styling, and rendering
+    const meetSelect = document.getElementById('meetNameSelect');
+    const searchInput = document.getElementById('searchInput');
+    let fullData = [];
+    let currentSort = { index: null, direction: 1 };
+
+    const weekFiles = [
+      "2025resultsweek01.json",
+      "2025resultsweek02.json"
+    ];
+
+    function loadAllData() {
+      Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
+        .then(results => {
+          fullData = results.flatMap(r => r.value?.values || []);
+          populateMeetDropdown();
+          renderTable(fullData);
+        })
+        .catch(error => {
+          console.error('Error loading JSON:', error);
+          document.getElementById('table-container').innerHTML = '';
+          document.getElementById('error-message').style.display = 'block';
+        });
+    }
+
+    function populateMeetDropdown() {
+      const uniqueMeets = [...new Set(fullData.map(row => row[6] + ' (' + row[5] + ')'))];
+      meetSelect.innerHTML = '<option value="all">All Meets</option>';
+      uniqueMeets.forEach(meet => {
+        const opt = document.createElement('option');
+        opt.value = meet;
+        opt.textContent = meet;
+        meetSelect.appendChild(opt);
+      });
+    }
+
+    function renderTable(data) {
+      document.getElementById('error-message').style.display = 'none';
+      document.getElementById('no-results').style.display = 'none';
+
+      let filtered = data;
+
+      const selectedMeet = meetSelect.value;
+      const searchText = searchInput.value.toLowerCase();
+
+      if (selectedMeet !== 'all') {
+        const [meetName, date] = selectedMeet.split(' (');
+        const cleanedDate = date.replace(')', '');
+        filtered = filtered.filter(row => row[6] + ' (' + row[5] + ')' === selectedMeet);
+      }
+
+      if (searchText) {
+        filtered = filtered.filter(row => row[0].toLowerCase().includes(searchText));
+      }
+
+      if (filtered.length === 0) {
+        document.getElementById('table-container').innerHTML = '';
+        document.getElementById('no-results').style.display = 'block';
+        return;
+      }
+
+      if (currentSort.index !== null) {
+        filtered.sort((a, b) => {
+          const valA = a[currentSort.index];
+          const valB = b[currentSort.index];
+          return typeof valA === 'number'
+            ? currentSort.direction * (valA - valB)
+            : currentSort.direction * valA.localeCompare(valB);
+        });
+      }
+
+      const grouped = {};
+      filtered.forEach(row => {
+        const key = row[0];
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headers = ["Athlete Name", "Age", "Team Name", "Event", "Time", "Meet Date", "Meet Name"];
+      const sortableCols = [0, 1, 2];
+      const headerRow = document.createElement('tr');
+
+      headers.forEach((h, i) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        if (sortableCols.includes(i)) {
+          th.classList.add('sortable');
+          th.addEventListener('click', () => {
+            if (currentSort.index === i) {
+              currentSort.direction *= -1;
+            } else {
+              currentSort.index = i;
+              currentSort.direction = 1;
+            }
+            renderTable(filtered);
+          });
+        }
+        headerRow.appendChild(th);
+      });
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      let groupIndex = 0;
+      for (const group of Object.values(grouped)) {
+        const cssClass = groupIndex % 2 === 0 ? 'row-group-even' : 'row-group-odd';
+        group.forEach((row, i) => {
+          const tr = document.createElement('tr');
+          tr.className = cssClass;
+          row.forEach((cell, colIndex) => {
+            const td = document.createElement('td');
+            let displayValue = cell;
+            if (colIndex === 5 && typeof cell === 'string') {
+              const dateObj = new Date(cell);
+              if (!isNaN(dateObj)) {
+                const options = { month: 'short', day: '2-digit' };
+                displayValue = dateObj.toLocaleDateString('en-US', options);
+              }
+            }
+            td.innerHTML = (i === 0 && colIndex === 0) ? `<strong>${displayValue}</strong>` :
+                           (i !== 0 && colIndex < 3) ? '' : displayValue;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        groupIndex++;
+      }
+
+      table.appendChild(tbody);
+      document.getElementById('table-container').innerHTML = '';
+      document.getElementById('table-container').appendChild(table);
+    }
+
+    meetSelect.addEventListener('change', () => renderTable(fullData));
+    searchInput.addEventListener('input', () => renderTable(fullData));
+
+    loadAllData();
   </script>
 </body>
 </html>
