@@ -210,17 +210,6 @@ weekFiles.forEach((file, index) => {
     return d1 || d2 || "Unknown";
   }
 
-  function populateWeekDropdown() {
-    const dropdown = document.getElementById("weekSelect");
-    weekFiles.forEach((file, idx) => {
-      const weekNum = idx + 1;
-      const option = document.createElement("option");
-      option.value = file;
-      option.text = `Week #${weekNum}`;
-      dropdown.appendChild(option);
-    });
-  }
-
   function populateDivisionDropdown(rows) {
     const divisions = [...new Set(rows.map(row => row.division))];
     const divisionSelect = document.getElementById("divisionSelect");
@@ -367,7 +356,6 @@ function renderScores(rows) {
 
   // Initialize
   window.onload = function () {
-    populateWeekDropdown();
     const latest = weekFiles[weekFiles.length - 1];
     document.getElementById("weekSelect").value = latest;
     loadWeekData(latest);
