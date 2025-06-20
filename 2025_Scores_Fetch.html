@@ -141,7 +141,6 @@ th, td {
   <thead>
     <tr>
       <th>Date</th>
-      <th>Meet</th>
       <th>Score</th>
     </tr>
   </thead>
@@ -300,7 +299,6 @@ function renderScores(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${date}</td>
-      <td class="meet-name">${meetName}</td>
       <td>${scoreDisplay}</td>
     `;
     tbody.appendChild(tr);
