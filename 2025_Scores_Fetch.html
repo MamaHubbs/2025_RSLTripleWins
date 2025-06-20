@@ -53,11 +53,10 @@
     }
 
     table {
-      width: 500px;
+      width: 700px;
       margin: 10px auto;
       border-collapse: collapse;
-      font-size: 0.68em;
-      margin-top: 10px;
+      font-size: 0.75em;
     }
 
     th, td {
@@ -79,9 +78,8 @@
       color: green;
     }
 
-    .bold-only {
-      font-weight: bold;
-      color: #333;
+    .exh {
+      color: gray;
     }
 
     .button-bar {
@@ -115,13 +113,11 @@
 <div class="dropdown-container">
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="loadWeekData(this.value)">
-      <!-- Populated dynamically -->
-    </select>
+    <select id="weekSelect"></select>
   </div>
   <div class="dropdown-box">
     <label for="divisionSelect">Division</label>
-    <select id="divisionSelect" onchange="filterDivision()">
+    <select id="divisionSelect">
       <option value="all">All Divisions</option>
     </select>
   </div>
@@ -129,7 +125,7 @@
 
 <div class="button-bar">
   <button class="csv-btn" onclick="downloadCSV()">Download CSV</button>
-  <button class="print-btn" onclick="printPage()">Print PDF</button>
+  <button class="print-btn" onclick="window.print()">Print PDF</button>
   <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
 </div>
 
@@ -137,29 +133,63 @@
   <thead>
     <tr>
       <th>Date</th>
-      <th>Score</th>
+      <th>Away</th>
+      <th>Home</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
 <script>
+// Constants
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
-  "2025scoresweek02.json": "06/15/2025"
+  "2025scoresweek02.json": "06/15/2025",
+  // Add more
 };
-
-const weekFiles = Object.keys(weekDateMap).sort();
+const weekFiles = Object.keys(weekDateMap);
 const latestWeekFile = weekFiles[weekFiles.length - 1];
 
 const teamDivisionMap = {
-  "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield", "Woodlands": "Battlefield", "Fawn Lake": "Battlefield", "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
-  "Leeland Station": "Patriot", "Austin Ridge": "Patriot", "Lake of the Woods": "Patriot", "Lee's Hill": "Patriot", "Aquia Harbour": "Patriot", "Dahlgren": "Patriot", "Fox Point": "Patriot",
-  "Fredericksburg CC": "American", "Ferry Farm": "American", "Chancellor": "American", "Hopyard": "American", "Caroline": "American", "Spotsy Y": "American",
-  "Grafton": "National", "College Heights": "National", "Salem Fields": "National", "Lake Wilderness": "National", "Eden Estates": "National", "Idlewild": "National"
+  "Massad YMCA": "Battlefield",
+  "Hampton Oaks": "Battlefield",
+  "Woodlands": "Battlefield",
+  "Fawn Lake": "Battlefield",
+  "Spotswood": "Battlefield",
+  "Curtis Park": "Battlefield",
+  "Leeland Station": "Patriot",
+  "Austin Ridge": "Patriot",
+  "Lake of the Woods": "Patriot",
+  "Lee's Hill": "Patriot",
+  "Aquia Harbour": "Patriot",
+  "Dahlgren": "Patriot",
+  "Fox Point": "Patriot",
+  "Fredericksburg CC": "American",
+  "Ferry Farm": "American",
+  "Chancellor": "American",
+  "Hopyard": "American",
+  "Caroline": "American",
+  "Spotsy Y": "American",
+  "Grafton": "National",
+  "College Heights": "National",
+  "Salem Fields": "National",
+  "Lake Wilderness": "National",
+  "Eden Estates": "National",
+  "Idlewild": "National"
 };
 
 let allRows = [];
+
+// Populate week dropdown
+const weekSelect = document.getElementById("weekSelect");
+weekSelect.innerHTML = '<option value="all">All Weeks</option>';
+weekFiles.forEach((file, i) => {
+  const opt = document.createElement("option");
+  opt.value = file;
+  opt.textContent = `Week #${i + 1} (${weekDateMap[file]})`;
+  if (file === latestWeekFile) opt.selected = true;
+  weekSelect.appendChild(opt);
+});
 
 function getDivision(team1, team2) {
   const d1 = teamDivisionMap[team1];
@@ -168,94 +198,74 @@ function getDivision(team1, team2) {
   return d1 || d2 || "Unknown";
 }
 
-function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.map(row => row.division))];
-  const divisionSelect = document.getElementById("divisionSelect");
-  divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
-  divisions.forEach(div => {
-    const opt = document.createElement("option");
-    opt.value = div;
-    opt.text = div;
-    divisionSelect.appendChild(opt);
-  });
-}
-
 function loadWeekData(selectedFile) {
-  const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
+  const files = selectedFile === "all" ? weekFiles : [selectedFile];
   const merged = new Map();
   allRows = [];
 
   Promise.all(
-    filesToLoad.map(file =>
+    files.map(file =>
       fetch(file)
         .then(res => res.json())
         .then(data => {
-          data.values.forEach(row => {
-            const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
-            const key = `${meetName}|${date}`;
-            if (!merged.has(key)) {
-              merged.set(key, { date, meetName, teams: {} });
-            }
-            const match = merged.get(key);
-            if (teamA && scoreA != null) match.teams[teamA] = scoreA;
-            if (teamB && scoreB != null) match.teams[teamB] = scoreB;
+          data.values.forEach(([date, meet, teamA, scoreA, teamB, scoreB]) => {
+            const key = `${meet}|${date}`;
+            if (!merged.has(key)) merged.set(key, { date, meet, teams: {} });
+            const entry = merged.get(key);
+            entry.teams[teamA] = scoreA;
+            entry.teams[teamB] = scoreB;
           });
         })
     )
   ).then(() => {
-    merged.forEach((m) => {
-      const teams = Object.keys(m.teams);
-      if (teams.length !== 2) return;
-      const [team1, team2] = teams;
-      const s1 = parseFloat(m.teams[team1]);
-      const s2 = parseFloat(m.teams[team2]);
-      const d1 = teamDivisionMap[team1];
-      const d2 = teamDivisionMap[team2];
-      const isEXH = d1 && d2 && d1 !== d2;
-
-      const division = d1 === d2 ? d1 : d1 || d2 || "Unknown";
-
-      allRows.push({
-        division,
-        isEXH,
-        data: [m.date, team1, s1, team2, s2]
-      });
+    merged.forEach(({ date, meet, teams }) => {
+      const [away, home] = Object.keys(teams);
+      const awayScore = parseFloat(teams[away]);
+      const homeScore = parseFloat(teams[home]);
+      const division = getDivision(away, home);
+      const isEXH = teamDivisionMap[away] !== teamDivisionMap[home];
+      allRows.push({ date, away, awayScore, home, homeScore, division, isEXH });
     });
-
-    populateDivisionDropdown(allRows);
+    populateDivisionDropdown();
     renderScores(allRows);
+  });
+}
+
+function populateDivisionDropdown() {
+  const divisions = [...new Set(allRows.map(r => r.division))];
+  const select = document.getElementById("divisionSelect");
+  select.innerHTML = '<option value="all">All Divisions</option>';
+  divisions.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.text = d;
+    select.appendChild(opt);
   });
 }
 
 function renderScores(rows) {
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
-
-  rows.forEach(({ data, isEXH }) => {
-    const [date, team1, score1, team2, score2] = data;
-    const homeIsWinner = score2 > score1;
-    const awayIsWinner = score1 > score2;
-
-    const team1Block = awayIsWinner
-      ? `<span class="${isEXH ? 'bold-only' : 'winner'}"><span class="label">(Away)</span> ${team1} ${score1}</span>`
-      : `<span class="${isEXH ? '' : ''}"><span class="label">(Away)</span> ${team1} ${score1}</span>`;
-
-    const team2Block = homeIsWinner
-      ? `<span class="${isEXH ? 'bold-only' : 'winner'}">${score2} ${team2} <span class="label">(Home)</span></span>`
-      : `<span>${score2} ${team2} <span class="label">(Home)</span></span>`;
-
-    const scoreDisplay = `${isEXH ? '<span class="label">EXH</span>&nbsp;&nbsp;&nbsp;' : ''}${team1Block} — ${team2Block}`;
+  rows.forEach(({ date, away, awayScore, home, homeScore, isEXH }) => {
+    const homeWin = homeScore > awayScore;
+    const awayWin = awayScore > homeScore;
+    const awayClass = isEXH ? "exh" : awayWin ? "winner" : "";
+    const homeClass = isEXH ? "exh" : homeWin ? "winner" : "";
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${date}</td><td>${scoreDisplay}</td>`;
+    tr.innerHTML = `
+      <td>${date}${isEXH ? '<br><span class="label">EXH</span>' : ''}</td>
+      <td class="${awayClass}">${away} ${awayScore}</td>
+      <td class="${homeClass}">${homeScore} ${home}</td>
+    `;
     tbody.appendChild(tr);
   });
 }
 
 function filterDivision() {
-  const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
-  renderScores(filtered);
+  const val = document.getElementById("divisionSelect").value;
+  const rows = val === "all" ? allRows : allRows.filter(r => r.division === val);
+  renderScores(rows);
 }
 
 function clearFilters() {
@@ -263,24 +273,17 @@ function clearFilters() {
   renderScores(allRows);
 }
 
-function printPage() {
-  window.print();
-}
-
 function downloadCSV() {
-  const headers = ["Date", "Score"];
-  const rows = [];
+  const rows = ["Date,Away,Home"];
   document.querySelectorAll("#scoresTable tbody tr").forEach(tr => {
     const cells = tr.querySelectorAll("td");
-    if (cells.length === 2) {
-      rows.push([cells[0].innerText.trim(), cells[1].innerText.trim()]);
-    }
+    const row = Array.from(cells).map(td => '"' + td.textContent.trim() + '"');
+    rows.push(row.join(","));
   });
-  const csvContent = "data:text/csv;charset=utf-8," +
-    headers.join(",") + "\n" +
-    rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = encodeURI(csvContent);
+  link.href = url;
   link.download = "rsl_meet_scores.csv";
   document.body.appendChild(link);
   link.click();
@@ -288,14 +291,8 @@ function downloadCSV() {
 }
 
 window.onload = () => {
-  document.getElementById("weekSelect").innerHTML = '<option value="all">All Weeks</option>';
-  weekFiles.forEach((file, idx) => {
-    const opt = document.createElement("option");
-    opt.value = file;
-    opt.text = `Week #${idx + 1} (${weekDateMap[file]})`;
-    if (file === latestWeekFile) opt.selected = true;
-    document.getElementById("weekSelect").appendChild(opt);
-  });
+  document.getElementById("weekSelect").addEventListener("change", e => loadWeekData(e.target.value));
+  document.getElementById("divisionSelect").addEventListener("change", filterDivision);
   loadWeekData(latestWeekFile);
 };
 </script>
