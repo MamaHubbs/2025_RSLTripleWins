@@ -40,20 +40,10 @@
       margin-bottom: 6px;
     }
 
-    select, input[type="text"] {
+    select {
       padding: 3px 6px;
       font-size: 0.7em;
       border-radius: 4px;
-    }
-
-    button {
-      padding: 4px 8px;
-      font-size: 0.7em;
-      border-radius: 4px;
-      background-color: #0156B3;
-      color: white;
-      border: none;
-      cursor: pointer;
     }
 
     table {
@@ -75,34 +65,6 @@
       position: sticky;
       top: 0;
       z-index: 1;
-    }
-
-    .row-group-even {
-      background-color: #ffffff;
-    }
-
-    .row-group-odd {
-      background-color: #f4f4f4;
-    }
-
-    .error {
-      color: red;
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
-    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
-    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
-    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
-    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
-    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
-    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
-
-    td {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .winner {
@@ -154,8 +116,7 @@
 <script>
   const weekFiles = [
     "2025scoresweek01.json",
-     "2025scoresweek01.json"
-    // Add more weeks as needed
+    "2025scoresweek02.json"
   ];
 
   const teamDivisionMap = {
@@ -208,66 +169,8 @@
     });
   }
 
-function loadWeekData(file) {
-  fetch(file)
-    .then(res => res.json())
-    .then(data => {
-      const merged = new Map();
-
-      data.values.forEach(row => {
-        const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = row;
-        const key = `${meetName}|${date}`;
-
-        if (!merged.has(key)) {
-          merged.set(key, {
-            date,
-            meetName,
-            homeTeam: null,
-            homeScore: null,
-            awayTeam: null,
-            awayScore: null
-          });
-        }
-
-        const match = merged.get(key);
-
-        if (homeTeam && homeScore != null) {
-          match.homeTeam = homeTeam;
-          match.homeScore = homeScore;
-        }
-
-        if (awayTeam && awayScore != null) {
-          match.awayTeam = awayTeam;
-          match.awayScore = awayScore;
-        }
-      });
-
-      allRows = Array.from(merged.values).map(m => {
-        const division = getDivision(m.homeTeam, m.awayTeam);
-        return {
-          division,
-          data: [
-            m.date,
-            m.meetName,
-            m.homeTeam,
-            m.homeScore,
-            m.awayTeam,
-            m.awayScore
-          ]
-        };
-      });
-
-      populateDivisionDropdown(allRows);
-      renderScores(allRows);
-    })
-    .catch(err => {
-      console.error("Failed to load JSON:", err);
-      document.querySelector("#scoresTable tbody").innerHTML = "<tr><td colspan='3'>Unable to load data.</td></tr>";
-    });
-}
-
   function populateDivisionDropdown(rows) {
-    const divisions = [...new Set(rows.map(row => row.division).filter(Boolean))];
+    const divisions = [...new Set(rows.map(row => row.division))];
     const divisionSelect = document.getElementById("divisionSelect");
     divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
     divisions.forEach(div => {
@@ -278,44 +181,98 @@ function loadWeekData(file) {
     });
   }
 
+  function loadWeekData(file) {
+    fetch(file)
+      .then(res => res.json())
+      .then(data => {
+        const merged = new Map();
+
+        data.values.forEach(row => {
+          const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = row;
+          const key = `${meetName}|${date}`;
+
+          if (!merged.has(key)) {
+            merged.set(key, {
+              date,
+              meetName,
+              homeTeam: null,
+              homeScore: null,
+              awayTeam: null,
+              awayScore: null
+            });
+          }
+
+          const match = merged.get(key);
+
+          if (homeTeam) match.homeTeam = homeTeam;
+          if (awayTeam) match.awayTeam = awayTeam;
+
+          if (homeScore !== null && homeScore !== undefined) match.homeScore = homeScore;
+          if (awayScore !== null && awayScore !== undefined) match.awayScore = awayScore;
+        });
+
+        allRows = Array.from(merged.values).map(m => {
+          const division = getDivision(m.homeTeam, m.awayTeam);
+          return {
+            division,
+            data: [
+              m.date,
+              m.meetName,
+              m.homeTeam,
+              m.homeScore,
+              m.awayTeam,
+              m.awayScore
+            ]
+          };
+        });
+
+        populateDivisionDropdown(allRows);
+        renderScores(allRows);
+      })
+      .catch(err => {
+        console.error("Failed to load JSON:", err);
+        document.querySelector("#scoresTable tbody").innerHTML = "<tr><td colspan='3'>Unable to load data.</td></tr>";
+      });
+  }
+
   function filterDivision() {
     const selected = document.getElementById("divisionSelect").value;
     const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
     renderScores(filtered);
   }
 
- function renderScores(rows) {
-  const tbody = document.querySelector("#scoresTable tbody");
-  tbody.innerHTML = "";
+  function renderScores(rows) {
+    const tbody = document.querySelector("#scoresTable tbody");
+    tbody.innerHTML = "";
 
-  rows.forEach(({ data }) => {
-    const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = data;
-    const s1 = parseFloat(homeScore) || 0;
-    const s2 = parseFloat(awayScore) || 0;
+    rows.forEach(({ data }) => {
+      const [date, meetName, team1, score1, team2, score2] = data;
+      const s1 = score1 != null ? parseFloat(score1) : 0;
+      const s2 = score2 != null ? parseFloat(score2) : 0;
 
-    const team1IsWinner = s1 > s2;
-    const team2IsWinner = s2 > s1;
+      const team1IsWinner = s1 > s2;
+      const team2IsWinner = s2 > s1;
 
-    const team1Display = `<span class="${team1IsWinner ? 'winner' : ''}">
-      ${homeTeam}${team1IsWinner ? '<span class="check">✅</span>' : ''}
-    </span>`;
-    const team2Display = `<span class="${team2IsWinner ? 'winner' : ''}">
-      ${awayTeam}${team2IsWinner ? '<span class="check">✅</span>' : ''}
-    </span>`;
+      const team1Display = `<span class="${team1IsWinner ? 'winner' : ''}">
+        ${team1}${team1IsWinner ? '<span class="check">✅</span>' : ''}
+      </span>`;
+      const team2Display = `<span class="${team2IsWinner ? 'winner' : ''}">
+        ${team2}${team2IsWinner ? '<span class="check">✅</span>' : ''}
+      </span>`;
 
-    const scoreDisplay = `${team1Display} ${s1} — ${s2} ${team2Display}`;
+      const scoreDisplay = `${team1Display} ${s1} — ${s2} ${team2Display}`;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${date}</td>
-      <td class="meet-name">${meetName}</td>
-      <td>${scoreDisplay}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${date}</td>
+        <td class="meet-name">${meetName}</td>
+        <td>${scoreDisplay}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-  // On page load
+  // Init
   window.onload = function () {
     populateWeekDropdown();
     const latest = weekFiles[weekFiles.length - 1];
