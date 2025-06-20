@@ -287,11 +287,16 @@ function renderScores(rows) {
     const awayWins = awayScore > homeScore;
     const homeWins = homeScore > awayScore;
 
-    const awayInDiv = selectedDivision === "all" || teamDivisionMap[awayTeam] === selectedDivision;
-    const homeInDiv = selectedDivision === "all" || teamDivisionMap[homeTeam] === selectedDivision;
+const awayInSelectedDiv = selectedDivision !== "all" && teamDivisionMap[awayTeam] === selectedDivision;
+const homeInSelectedDiv = selectedDivision !== "all" && teamDivisionMap[homeTeam] === selectedDivision;
 
-    const awayNameClass = isExh ? (awayInDiv ? '' : 'not-in-division') : (awayWins ? 'winner-name' : '');
-    const homeNameClass = isExh ? (homeInDiv ? '' : 'not-in-division') : (homeWins ? 'winner-name' : '');
+const awayNameClass = isExh
+  ? (awayInSelectedDiv ? '' : (selectedDivision !== 'all' ? 'not-in-division' : ''))
+  : awayWins ? 'winner-name' : '';
+
+const homeNameClass = isExh
+  ? (homeInSelectedDiv ? '' : (selectedDivision !== 'all' ? 'not-in-division' : ''))
+  : homeWins ? 'winner-name' : '';
 
     const awayScoreClass = isExh ? 'score exh' : (awayWins ? 'winner-score' : 'score');
     const homeScoreClass = isExh ? 'score exh' : (homeWins ? 'winner-score' : 'score');
@@ -301,12 +306,12 @@ function renderScores(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${dateText}</td>
-      <td style="text-align: right; padding-right: 10px;">
+      <td style="text-align: right; padding-right: 20px;">
         <span class="${awayNameClass}">${awayTeam}</span>
         <span class="${awayScoreClass}">${awayScore}</span>
       </td>
       <td>—</td>
-      <td style="text-align: left; padding-left: 10px;">
+      <td style="text-align: left; padding-left: 20px;">
         <span class="${homeScoreClass}">${homeScore}</span>
         <span class="${homeNameClass}">${homeTeam}</span>
       </td>
