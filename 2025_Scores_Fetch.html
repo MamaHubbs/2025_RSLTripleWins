@@ -6,43 +6,103 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      color: #333;
       margin: 20px;
-      font-size: 0.9em;
+      background-color: #f8f8f8;
+      color: #333;
     }
 
     h1 {
       text-align: center;
       color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
     }
 
     .dropdown-container {
+      position: sticky;
+      top: 0;
+      background-color: #f8f8f8;
+      padding: 10px;
       text-align: center;
-      margin-bottom: 20px;
+      z-index: 10;
+      border-bottom: 1px solid #ccc;
+      font-size: 0.7em;
     }
 
     .dropdown-box {
       display: inline-block;
-      margin: 0 10px;
+      margin: 0 4px;
     }
 
-    select {
-      padding: 6px;
-      font-size: 1em;
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"] {
+      padding: 3px 6px;
+      font-size: 0.7em;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 4px 8px;
+      font-size: 0.7em;
+      border-radius: 4px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
+      font-size: 0.68em;
       margin-top: 10px;
     }
 
     th, td {
-      padding: 10px;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e5f1ff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .row-group-even {
+      background-color: #ffffff;
+    }
+
+    .row-group-odd {
+      background-color: #f4f4f4;
+    }
+
+    .error {
+      color: red;
       text-align: center;
-      border-bottom: 1px solid #ccc;
+      margin-top: 20px;
+    }
+
+    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .winner {
@@ -52,7 +112,7 @@
 
     .check {
       font-size: 1em;
-      margin-left: 5px;
+      margin-left: 4px;
     }
 
     .meet-name {
@@ -67,13 +127,13 @@
 
 <div class="dropdown-container">
   <div class="dropdown-box">
-    <label for="weekSelect">Week:</label>
+    <label for="weekSelect">Week</label>
     <select id="weekSelect" onchange="loadWeekData(this.value)">
       <!-- Dynamically populated -->
     </select>
   </div>
   <div class="dropdown-box">
-    <label for="divisionSelect">Division:</label>
+    <label for="divisionSelect">Division</label>
     <select id="divisionSelect" onchange="filterDivision()">
       <option value="all">All Divisions</option>
     </select>
@@ -93,10 +153,7 @@
 
 <script>
   const weekFiles = [
-    "2025scoresweek01.json",
-    "2025scoresweek02.json",
-    "2025scoresweek03.json",
-    "2025scoresweek04.json"
+    "2025scoresweek01.json"
     // Add more weeks as needed
   ];
 
@@ -216,7 +273,7 @@
     });
   }
 
-  // Initialize on page load
+  // On page load
   window.onload = function () {
     populateWeekDropdown();
     const latest = weekFiles[weekFiles.length - 1];
