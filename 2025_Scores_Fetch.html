@@ -52,6 +52,7 @@
       border-collapse: collapse;
       font-size: 0.68em;
       margin-top: 10px;
+      table-layout: fixed;
     }
 
     th, td {
@@ -59,6 +60,7 @@
       border: 1px solid #ccc;
       text-align: center;
       vertical-align: middle;
+      white-space: nowrap;
     }
 
     th {
@@ -68,16 +70,17 @@
       z-index: 1;
     }
 
-    .winner {
+    .winner-name {
+      font-weight: bold;
       color: green;
+    }
+
+    .score {
+      font-weight: bold;
     }
 
     .exh {
       color: #888;
-    }
-
-    .score-bold {
-      font-weight: bold;
     }
 
     .button-bar {
@@ -129,7 +132,7 @@
 
 <table id="scoresTable">
   <thead>
-    <tr><th>Date</th><th>Away</th><th></th><th>Home</th></tr>
+    <tr><th style="width: 20%;">Date</th><th style="width: 40%;">Away</th><th style="width: 5%;">—</th><th style="width: 35%;">Home</th></tr>
   </thead>
   <tbody></tbody>
 </table>
@@ -142,9 +145,15 @@ const weekDateMap = {
 
 const weekFiles = Object.keys(weekDateMap).sort();
 const latestWeekFile = weekFiles[weekFiles.length - 1];
+const teamDivisionMap = {
+  "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield", "Woodlands": "Battlefield", "Fawn Lake": "Battlefield", "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
+  "Leeland Station": "Patriot", "Austin Ridge": "Patriot", "Lake of the Woods": "Patriot", "Lee's Hill": "Patriot", "Aquia Harbour": "Patriot", "Dahlgren": "Patriot", "Fox Point": "Patriot",
+  "Fredericksburg CC": "American", "Ferry Farm": "American", "Chancellor": "American", "Hopyard": "American", "Caroline": "American", "Spotsy Y": "American",
+  "Grafton": "National", "College Heights": "National", "Salem Fields": "National", "Lake Wilderness": "National", "Eden Estates": "National", "Idlewild": "National"
+};
+
 const weekSelect = document.getElementById("weekSelect");
 weekSelect.innerHTML = '<option value="all">All Weeks</option>';
-
 weekFiles.forEach((file, index) => {
   const option = document.createElement("option");
   option.value = file;
@@ -153,47 +162,16 @@ weekFiles.forEach((file, index) => {
   weekSelect.appendChild(option);
 });
 
-const teamDivisionMap = {
-  "Massad YMCA": "Battlefield",
-  "Hampton Oaks": "Battlefield",
-  "Woodlands": "Battlefield",
-  "Fawn Lake": "Battlefield",
-  "Spotswood": "Battlefield",
-  "Curtis Park": "Battlefield",
-  "Leeland Station": "Patriot",
-  "Austin Ridge": "Patriot",
-  "Lake of the Woods": "Patriot",
-  "Lee's Hill": "Patriot",
-  "Aquia Harbour": "Patriot",
-  "Dahlgren": "Patriot",
-  "Fox Point": "Patriot",
-  "Fredericksburg CC": "American",
-  "Ferry Farm": "American",
-  "Chancellor": "American",
-  "Hopyard": "American",
-  "Caroline": "American",
-  "Spotsy Y": "American",
-  "Grafton": "National",
-  "College Heights": "National",
-  "Salem Fields": "National",
-  "Lake Wilderness": "National",
-  "Eden Estates": "National",
-  "Idlewild": "National"
-};
-
 let allRows = [];
 
 function getDivision(team1, team2) {
   const d1 = teamDivisionMap[team1];
   const d2 = teamDivisionMap[team2];
-  if (d1 && d2 && d1 === d2) return d1;
-  return d1 || d2 || "Unknown";
-}
-
-function isExhibition(team1, team2) {
-  const d1 = teamDivisionMap[team1];
-  const d2 = teamDivisionMap[team2];
-  return d1 && d2 && d1 !== d2;
+  if (d1 && d2 && d1 === d2) return [d1];
+  const divisions = [];
+  if (d1) divisions.push(d1);
+  if (d2 && d2 !== d1) divisions.push(d2);
+  return divisions.length ? divisions : ["Unknown"];
 }
 
 function cleanScore(score) {
@@ -202,7 +180,7 @@ function cleanScore(score) {
 }
 
 function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.map(row => row.division))];
+  const divisions = [...new Set(rows.flatMap(row => row.divisions))];
   const divisionSelect = document.getElementById("divisionSelect");
   divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
   divisions.forEach(div => {
@@ -226,32 +204,28 @@ function loadWeekData(selectedFile) {
           data.values.forEach(row => {
             const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
             const key = `${meetName}|${date}`;
-
-            if (!merged.has(key)) {
-              merged.set(key, { date, meetName, teams: {} });
-            }
-
+            if (!merged.has(key)) merged.set(key, { date, meetName, teams: {} });
             const match = merged.get(key);
             if (teamA && scoreA != null) match.teams[teamA] = scoreA;
             if (teamB && scoreB != null) match.teams[teamB] = scoreB;
           });
         })
-        .catch(err => console.error(`Failed to load ${file}`, err))
     )
   ).then(() => {
     merged.forEach((m) => {
       const teamNames = Object.keys(m.teams);
       if (teamNames.length !== 2) return;
+      const team1 = teamNames[0], team2 = teamNames[1];
+      const score1 = cleanScore(m.teams[team1]), score2 = cleanScore(m.teams[team2]);
+      const divisions = getDivision(team1, team2);
+      const isExh = divisions.length > 1;
 
-      const team1 = teamNames[0];
-      const team2 = teamNames[1];
-      const score1 = cleanScore(m.teams[team1]);
-      const score2 = cleanScore(m.teams[team2]);
-
-      allRows.push({
-        division: getDivision(team1, team2),
-        exhibition: isExhibition(team1, team2),
-        data: [m.date, team1, score1, team2, score2]
+      divisions.forEach(div => {
+        allRows.push({
+          division: div,
+          isExh,
+          data: [m.date, team1, score1, team2, score2]
+        });
       });
     });
 
@@ -264,21 +238,22 @@ function renderScores(rows) {
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
 
-  rows.forEach(({ data, exhibition }) => {
+  rows.forEach(({ data, isExh }) => {
     const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
-    const awayIsWinner = awayScore > homeScore;
-    const homeIsWinner = homeScore > awayScore;
-    const dateText = `${date}${exhibition ? ' (EXH)' : ''}`;
+    const awayWins = awayScore > homeScore;
+    const homeWins = homeScore > awayScore;
 
-    const awayDisplay = `${awayTeam} <span class="score-bold ${exhibition ? 'exh' : awayIsWinner ? 'winner' : ''}">${awayScore}</span>`;
-    const homeDisplay = `<span class="score-bold ${exhibition ? 'exh' : homeIsWinner ? 'winner' : ''}">${homeScore}</span> ${homeTeam}`;
+    const awayContent = `
+      <span class="${isExh ? 'exh' : awayWins ? 'winner-name' : ''}">${awayTeam} <span class="score">${awayScore}</span></span>`;
+    const homeContent = `
+      <span class="${isExh ? 'exh' : homeWins ? 'winner-name' : ''}"><span class="score">${homeScore}</span> ${homeTeam}</span>`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${dateText}</td>
-      <td>${awayDisplay}</td>
+      <td>${date}${isExh ? ' <span class="exh">(EXH)</span>' : ''}</td>
+      <td>${awayContent}</td>
       <td>—</td>
-      <td>${homeDisplay}</td>
+      <td>${homeContent}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -286,7 +261,7 @@ function renderScores(rows) {
 
 function filterDivision() {
   const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected || (r.exhibition && (teamDivisionMap[r.data[1]] === selected || teamDivisionMap[r.data[3]] === selected)));
+  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
   renderScores(filtered);
 }
 
@@ -302,8 +277,7 @@ function printPage() {
 function downloadCSV() {
   const headers = ["Date", "Away", "Home"];
   const rows = [];
-  const filtered = document.querySelectorAll("#scoresTable tbody tr");
-  filtered.forEach(tr => {
+  document.querySelectorAll("#scoresTable tbody tr").forEach(tr => {
     const cells = tr.querySelectorAll("td");
     if (cells.length === 4) {
       const date = cells[0].innerText.trim();
@@ -312,10 +286,12 @@ function downloadCSV() {
       rows.push([date, away, home]);
     }
   });
-  let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
+
+  const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" +
+    rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
+  link.setAttribute("href", encodeURI(csvContent));
   link.setAttribute("download", "rsl_meet_scores.csv");
   document.body.appendChild(link);
   link.click();
