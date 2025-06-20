@@ -79,9 +79,14 @@
       color: green;
     }
 
-    .bold-only {
-      font-weight: bold;
-      color: inherit;
+    .check {
+      font-size: 1em;
+      margin-left: 4px;
+    }
+
+    .meet-name {
+      font-style: italic;
+      color: #666;
     }
 
     .button-bar {
@@ -115,7 +120,9 @@
 <div class="dropdown-container">
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="loadWeekData(this.value)"></select>
+    <select id="weekSelect" onchange="loadWeekData(this.value)">
+      <!-- Week options populated dynamically -->
+    </select>
   </div>
   <div class="dropdown-box">
     <label for="divisionSelect">Division</label>
@@ -145,6 +152,7 @@
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
   "2025scoresweek02.json": "06/15/2025",
+  // Add more as needed
 };
 
 const weekFiles = Object.keys(weekDateMap).sort();
@@ -157,7 +165,9 @@ weekFiles.forEach((file, index) => {
   const option = document.createElement("option");
   option.value = file;
   option.textContent = `Week #${index + 1} (${weekDateMap[file]})`;
-  if (file === latestWeekFile) option.selected = true;
+  if (file === latestWeekFile) {
+    option.selected = true;
+  }
   weekSelect.appendChild(option);
 });
 
@@ -194,8 +204,10 @@ let allRows = [];
 function getDivision(team1, team2) {
   const d1 = teamDivisionMap[team1];
   const d2 = teamDivisionMap[team2];
-  if (d1 && d2 && d1 !== d2) return "Mixed";
-  return d1 || d2 || "Unknown";
+  if (d1 && d2 && d1 === d2) return d1;
+  if (d1) return d1;
+  if (d2) return d2;
+  return "Unknown";
 }
 
 function populateDivisionDropdown(rows) {
@@ -237,24 +249,22 @@ function loadWeekData(selectedFile) {
             if (teamB && scoreB != null) match.teams[teamB] = scoreB;
           });
         })
+        .catch(err => console.error(`Failed to load ${file}`, err))
     )
   ).then(() => {
     merged.forEach((m) => {
       const teamNames = Object.keys(m.teams);
       if (teamNames.length !== 2) return;
 
-      const [team1, team2] = teamNames;
+      const team1 = teamNames[0];
+      const team2 = teamNames[1];
       const score1 = m.teams[team1];
       const score2 = m.teams[team2];
 
-      const d1 = teamDivisionMap[team1];
-      const d2 = teamDivisionMap[team2];
-      const isMixed = d1 && d2 && d1 !== d2;
-      const isEXH = isMixed ? " (EXH)" : "";
-      const meetLabel = m.meetName + isEXH;
-
-      if (d1) allRows.push({ division: d1, data: [m.date, meetLabel, team1, score1, team2, score2] });
-      if (d2 && d2 !== d1) allRows.push({ division: d2, data: [m.date, meetLabel, team1, score1, team2, score2] });
+      allRows.push({
+        division: getDivision(team1, team2),
+        data: [m.date, m.meetName, team1, score1, team2, score2]
+      });
     });
 
     populateDivisionDropdown(allRows);
@@ -269,28 +279,26 @@ function renderScores(rows) {
   rows.forEach(({ data }) => {
     const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = data;
 
-    const sHome = parseFloat(homeScore);
-    const sAway = parseFloat(awayScore);
-    const isEXH = meetName.includes("(EXH)");
+    const sHome = homeScore != null ? parseFloat(homeScore) : 0;
+    const sAway = awayScore != null ? parseFloat(awayScore) : 0;
 
-    const homeIsWinner = !isEXH && sHome > sAway;
-    const awayIsWinner = !isEXH && sAway > sHome;
+    const homeIsWinner = sHome > sAway;
+    const awayIsWinner = sAway > sHome;
 
-    const awayContent = `${awayTeam} ${sAway}`;
-    const homeContent = `${sHome} ${homeTeam}`;
+    const awayContent = awayIsWinner
+      ? `<span class="winner"><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`
+      : `<span><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`;
 
-    const awayBlock = awayIsWinner
-      ? `<span class="winner"><span class="label">(Away)</span> ${awayContent}</span>`
-      : `<span class="${isEXH ? 'bold-only' : ''}"><span class="label">(Away)</span> ${awayContent}</span>`;
+    const homeContent = homeIsWinner
+      ? `<span class="winner">${sHome} ${homeTeam} <span class="label">(Home)</span></span>`
+      : `<span>${sHome} ${homeTeam} <span class="label">(Home)</span></span>`;
 
-    const homeBlock = homeIsWinner
-      ? `<span class="winner">${homeContent} <span class="label">(Home)</span></span>`
-      : `<span class="${isEXH ? 'bold-only' : ''}">${homeContent} <span class="label">(Home)</span></span>`;
+    const scoreDisplay = `${awayContent} — ${homeContent}`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${date}</td>
-      <td>${awayBlock} — ${homeBlock}</td>
+      <td>${scoreDisplay}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -314,6 +322,7 @@ function printPage() {
 function downloadCSV() {
   const headers = ["Date", "Score"];
   const rows = [];
+
   const filtered = document.querySelectorAll("#scoresTable tbody tr");
   filtered.forEach(tr => {
     const cells = tr.querySelectorAll("td");
@@ -324,7 +333,7 @@ function downloadCSV() {
     }
   });
 
-  let csvContent = "data:text/csv;charset=utf-8," 
+  let csvContent = "data:text/csv;charset=utf-8,"
     + headers.join(",") + "\n"
     + rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
 
@@ -337,11 +346,13 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
+// Initialize
 window.onload = function () {
   const latest = weekFiles[weekFiles.length - 1];
   document.getElementById("weekSelect").value = latest;
   loadWeekData(latest);
 };
 </script>
+
 </body>
 </html>
