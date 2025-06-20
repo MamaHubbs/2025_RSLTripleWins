@@ -81,6 +81,29 @@
       font-style: italic;
       color: #666;
     }
+
+    .button-bar {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .button-bar button {
+      padding: 6px 14px;
+      font-size: 0.9em;
+      border-radius: 6px;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .csv-btn, .print-btn {
+      background-color: #08b211;
+    }
+
+    .clear-btn {
+      background-color: #0156B3;
+    }
   </style>
 </head>
 <body>
@@ -91,7 +114,7 @@
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
     <select id="weekSelect" onchange="loadWeekData(this.value)">
-      <!-- Dynamically populated -->
+      <!-- Week options populated dynamically -->
     </select>
   </div>
   <div class="dropdown-box">
@@ -100,6 +123,12 @@
       <option value="all">All Divisions</option>
     </select>
   </div>
+</div>
+
+<div class="button-bar">
+  <button class="csv-btn" onclick="downloadCSV()">Download CSV</button>
+  <button class="print-btn" onclick="printPage()">Print PDF</button>
+  <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
 </div>
 
 <table id="scoresTable">
@@ -116,8 +145,10 @@
 <script>
   const weekFiles = [
     "2025scoresweek01.json",
-    "2025scoresweek02.json"
-    //Add more as needed
+    "2025scoresweek02.json",
+    "2025scoresweek03.json",
+    "2025scoresweek04.json"
+    // Add more weeks as needed
   ];
 
   const teamDivisionMap = {
@@ -205,7 +236,6 @@
 
           const match = merged.get(key);
 
-          // Assign teams and scores smartly
           if (scoreA != null && teamA) {
             if (!match.homeScore) {
               match.homeTeam = teamA;
@@ -251,12 +281,6 @@
       });
   }
 
-  function filterDivision() {
-    const selected = document.getElementById("divisionSelect").value;
-    const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
-    renderScores(filtered);
-  }
-
   function renderScores(rows) {
     const tbody = document.querySelector("#scoresTable tbody");
     tbody.innerHTML = "";
@@ -288,6 +312,50 @@
     });
   }
 
+  function filterDivision() {
+    const selected = document.getElementById("divisionSelect").value;
+    const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
+    renderScores(filtered);
+  }
+
+  function clearFilters() {
+    document.getElementById("divisionSelect").value = "all";
+    renderScores(allRows);
+  }
+
+  function printPage() {
+    window.print();
+  }
+
+  function downloadCSV() {
+    const headers = ["Date", "Meet", "Score"];
+    const rows = [];
+
+    const filtered = document.querySelectorAll("#scoresTable tbody tr");
+    filtered.forEach(tr => {
+      const cells = tr.querySelectorAll("td");
+      if (cells.length === 3) {
+        const date = cells[0].innerText.trim();
+        const meet = cells[1].innerText.trim();
+        const score = cells[2].innerText.trim().replace(/\s+/g, " ");
+        rows.push([date, meet, score]);
+      }
+    });
+
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n"
+      + rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "rsl_meet_scores.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Initialize
   window.onload = function () {
     populateWeekDropdown();
     const latest = weekFiles[weekFiles.length - 1];
