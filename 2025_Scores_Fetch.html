@@ -284,8 +284,8 @@ function renderScores(rows) {
     const homeIsWinner = sHome > sAway;
     const awayIsWinner = sAway > sHome;
 
-    const awayContent = `${awayTeam} ✅ ${sAway}`;
-    const homeContent = `${sHome} ✅ ${homeTeam}`;
+    const awayContent = `✅ ${awayTeam} ${sAway}`;
+    const homeContent = `${sHome} ${homeTeam} ✅`;
 
     const awayBlock = awayIsWinner
       ? `<span class="winner"><span class="label">(Away)</span> ${awayContent}</span>`
