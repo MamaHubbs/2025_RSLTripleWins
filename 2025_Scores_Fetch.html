@@ -70,6 +70,15 @@
       z-index: 1;
     }
 
+    .team-name {
+  margin-right: 8px;
+}
+
+.home-col .team-name {
+  margin-right: 0;
+  margin-left: 8px;
+}
+    
     .winner-name {
       font-weight: bold;
       color: green;
@@ -260,9 +269,9 @@ function renderScores(rows) {
     const tr = document.createElement("tr");
 tr.innerHTML = `
   <td>${dateText}</td>
-  <td class="away-col"><span class="${awayNameClass}">${awayTeam}</span> <span class="${scoreClass}">${awayScore}</span></td>
+<td class="away-col"><span class="team-name ${awayNameClass}">${awayTeam}</span><span class="${scoreClass}">${awayScore}</span></td>
   <td>—</td>
-  <td class="home-col"><span class="${scoreClass}">${homeScore}</span> <span class="${homeNameClass}">${homeTeam}</span></td>
+<td class="home-col"><span class="${scoreClass}">${homeScore}</span><span class="team-name ${homeNameClass}">${homeTeam}</span></td>
 `;
     tbody.appendChild(tr);
   });
