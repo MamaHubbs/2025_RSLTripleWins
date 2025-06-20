@@ -221,11 +221,12 @@ function loadWeekData(selectedFile) {
       const divisions = getDivisions(team1, team2);
       const isExh = divisions.length > 1;
 
-allRows.push({
-  divisions,
-  isExh,
-  data: [m.date, team1, score1, team2, score2]
-});
+      allRows.push({
+        divisions,
+        isExh,
+        data: [m.date, team1, score1, team2, score2]
+      });
+    });
 
     populateDivisionDropdown(allRows);
     renderScores(allRows);
