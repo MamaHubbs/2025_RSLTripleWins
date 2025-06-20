@@ -53,12 +53,12 @@
       margin-top: 10px;
     }
 
-    th, td {
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-      vertical-align: top;
-    }
+th, td {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  text-align: center;
+  vertical-align: middle;
+}
 
     th {
       background-color: #e5f1ff;
@@ -265,36 +265,33 @@ function loadWeekData(file) {
     });
 }
 
-  function renderScores(rows) {
-    const tbody = document.querySelector("#scoresTable tbody");
-    tbody.innerHTML = "";
+function renderScores(rows) {
+  const tbody = document.querySelector("#scoresTable tbody");
+  tbody.innerHTML = "";
 
-    rows.forEach(({ data }) => {
-      const [date, meetName, team1, score1, team2, score2] = data;
-      const s1 = score1 != null ? parseFloat(score1) : 0;
-      const s2 = score2 != null ? parseFloat(score2) : 0;
+  rows.forEach(({ data }) => {
+    const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = data;
 
-      const team1IsWinner = s1 > s2;
-      const team2IsWinner = s2 > s1;
+    const sHome = homeScore != null ? parseFloat(homeScore) : 0;
+    const sAway = awayScore != null ? parseFloat(awayScore) : 0;
 
-      const team1Display = `<span class="${team1IsWinner ? 'winner' : ''}">
-        ${team1}${team1IsWinner ? '<span class="check">✅</span>' : ''}
-      </span>`;
-      const team2Display = `<span class="${team2IsWinner ? 'winner' : ''}">
-        ${team2}${team2IsWinner ? '<span class="check">✅</span>' : ''}
-      </span>`;
+    const homeIsWinner = sHome > sAway;
+    const awayIsWinner = sAway > sHome;
 
-      const scoreDisplay = `${team1Display} ${s1} — ${s2} ${team2Display}`;
+    const awayDisplay = `(Away) ${awayTeam}${awayIsWinner ? '<span class="check">✅</span>' : ''}`;
+    const homeDisplay = `${homeTeam} (Home)${homeIsWinner ? '<span class="check">✅</span>' : ''}`;
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${date}</td>
-        <td class="meet-name">${meetName}</td>
-        <td>${scoreDisplay}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
+    const scoreDisplay = `${awayDisplay} ${sAway} — ${sHome} ${homeDisplay}`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td class="meet-name">${meetName}</td>
+      <td>${scoreDisplay}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
   function filterDivision() {
     const selected = document.getElementById("divisionSelect").value;
