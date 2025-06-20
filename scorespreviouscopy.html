@@ -69,12 +69,15 @@
     }
 
     .winner {
-      font-weight: bold;
       color: green;
     }
 
     .exh {
       color: #888;
+    }
+
+    .bold {
+      font-weight: bold;
     }
 
     .button-bar {
@@ -187,9 +190,10 @@ function getDivision(team1, team2) {
   return d1 || d2 || "Unknown";
 }
 
-function cleanScore(score) {
-  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
-  return isNaN(num) ? 0 : num;
+function isExhibition(team1, team2) {
+  const d1 = teamDivisionMap[team1];
+  const d2 = teamDivisionMap[team2];
+  return d1 && d2 && d1 !== d2;
 }
 
 function populateDivisionDropdown(rows) {
@@ -234,15 +238,23 @@ function loadWeekData(selectedFile) {
       const teamNames = Object.keys(m.teams);
       if (teamNames.length !== 2) return;
 
-      const team1 = teamNames[0];
-      const team2 = teamNames[1];
-      const score1 = m.teams[team1];
-      const score2 = m.teams[team2];
+      const [team1, team2] = teamNames;
+      const score1 = parseFloat(m.teams[team1]);
+      const score2 = parseFloat(m.teams[team2]);
 
-      allRows.push({
+      const isExh = isExhibition(team1, team2);
+
+      const row = {
         division: getDivision(team1, team2),
-        data: [m.date, team1, cleanScore(score1), team2, cleanScore(score2)]
-      });
+        data: [m.date, team1, score1, team2, score2, isExh]
+      };
+
+      allRows.push(row);
+
+      if (isExh) {
+        allRows.push({ ...row, division: teamDivisionMap[team1] });
+        allRows.push({ ...row, division: teamDivisionMap[team2] });
+      }
     });
 
     populateDivisionDropdown(allRows);
@@ -255,19 +267,20 @@ function renderScores(rows) {
   tbody.innerHTML = "";
 
   rows.forEach(({ data }) => {
-    const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
+    const [date, awayTeam, awayScore, homeTeam, homeScore, isExh] = data;
     const awayIsWinner = awayScore > homeScore;
     const homeIsWinner = homeScore > awayScore;
 
-    const awayScoreSpan = `<strong class="${awayIsWinner ? 'winner' : ''}">${awayScore}</strong>`;
-    const homeScoreSpan = `<strong class="${homeIsWinner ? 'winner' : ''}">${homeScore}</strong>`;
+    const awayScoreClass = awayIsWinner ? (isExh ? "bold exh" : "bold winner") : "bold";
+    const homeScoreClass = homeIsWinner ? (isExh ? "bold exh" : "bold winner") : "bold";
+    const exhLabel = isExh ? "<span class='exh'>EXH</span> &nbsp;&nbsp;" : "";
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${date}</td>
-      <td>${awayTeam} ${awayScoreSpan}</td>
+      <td>${exhLabel}${date}</td>
+      <td class="${awayScoreClass}">${awayTeam} ${awayScore}</td>
       <td>—</td>
-      <td>${homeScoreSpan} ${homeTeam}</td>
+      <td class="${homeScoreClass}">${homeScore} ${homeTeam}</td>
     `;
     tbody.appendChild(tr);
   });
