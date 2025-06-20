@@ -231,18 +231,17 @@ function loadWeekData(file) {
 
         const match = merged.get(key);
 
-        // Fill whichever side this row has data for
-        if (homeTeam && homeScore !== null) {
+        if (homeTeam && homeScore != null) {
           match.homeTeam = homeTeam;
           match.homeScore = homeScore;
         }
-        if (awayTeam && awayScore !== null) {
+
+        if (awayTeam && awayScore != null) {
           match.awayTeam = awayTeam;
           match.awayScore = awayScore;
         }
       });
 
-      // Rebuild allRows with division added
       allRows = Array.from(merged.values).map(m => {
         const division = getDivision(m.homeTeam, m.awayTeam);
         return {
@@ -285,36 +284,36 @@ function loadWeekData(file) {
     renderScores(filtered);
   }
 
-  function renderScores(rows) {
-    const tbody = document.querySelector("#scoresTable tbody");
-    tbody.innerHTML = "";
+ function renderScores(rows) {
+  const tbody = document.querySelector("#scoresTable tbody");
+  tbody.innerHTML = "";
 
-    rows.forEach(({ data }) => {
-      const [date, meetName, team1, score1, team2, score2] = data;
-      const s1 = parseFloat(score1) || 0;
-      const s2 = parseFloat(score2) || 0;
+  rows.forEach(({ data }) => {
+    const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = data;
+    const s1 = parseFloat(homeScore) || 0;
+    const s2 = parseFloat(awayScore) || 0;
 
-      const team1IsWinner = s1 > s2;
-      const team2IsWinner = s2 > s1;
+    const team1IsWinner = s1 > s2;
+    const team2IsWinner = s2 > s1;
 
-      const team1Display = `<span class="${team1IsWinner ? 'winner' : ''}">
-        ${team1}${team1IsWinner ? '<span class="check">✅</span>' : ''}
-      </span>`;
-      const team2Display = `<span class="${team2IsWinner ? 'winner' : ''}">
-        ${team2}${team2IsWinner ? '<span class="check">✅</span>' : ''}
-      </span>`;
+    const team1Display = `<span class="${team1IsWinner ? 'winner' : ''}">
+      ${homeTeam}${team1IsWinner ? '<span class="check">✅</span>' : ''}
+    </span>`;
+    const team2Display = `<span class="${team2IsWinner ? 'winner' : ''}">
+      ${awayTeam}${team2IsWinner ? '<span class="check">✅</span>' : ''}
+    </span>`;
 
-      const scoreDisplay = `${team1Display} ${s1} — ${s2} ${team2Display}`;
+    const scoreDisplay = `${team1Display} ${s1} — ${s2} ${team2Display}`;
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${date}</td>
-        <td class="meet-name">${meetName}</td>
-        <td>${scoreDisplay}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td class="meet-name">${meetName}</td>
+      <td>${scoreDisplay}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
   // On page load
   window.onload = function () {
