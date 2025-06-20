@@ -325,6 +325,16 @@
         filtered = filtered.filter(row => row[0].toLowerCase().includes(search));
       }
 
+if (currentSort.index !== null) {
+  filtered.sort((a, b) => {
+    const valA = a[currentSort.index];
+    const valB = b[currentSort.index];
+    return typeof valA === 'number'
+      ? currentSort.direction * (valA - valB)
+      : currentSort.direction * valA.localeCompare(valB);
+  });
+}
+      
       const grouped = {};
       filtered.forEach(row => {
         const key = row[0];
