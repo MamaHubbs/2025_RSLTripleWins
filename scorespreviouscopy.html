@@ -76,7 +76,7 @@
       color: #888;
     }
 
-    .bold {
+    .score-bold {
       font-weight: bold;
     }
 
@@ -196,6 +196,11 @@ function isExhibition(team1, team2) {
   return d1 && d2 && d1 !== d2;
 }
 
+function cleanScore(score) {
+  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+
 function populateDivisionDropdown(rows) {
   const divisions = [...new Set(rows.map(row => row.division))];
   const divisionSelect = document.getElementById("divisionSelect");
@@ -238,23 +243,16 @@ function loadWeekData(selectedFile) {
       const teamNames = Object.keys(m.teams);
       if (teamNames.length !== 2) return;
 
-      const [team1, team2] = teamNames;
-      const score1 = parseFloat(m.teams[team1]);
-      const score2 = parseFloat(m.teams[team2]);
+      const team1 = teamNames[0];
+      const team2 = teamNames[1];
+      const score1 = cleanScore(m.teams[team1]);
+      const score2 = cleanScore(m.teams[team2]);
 
-      const isExh = isExhibition(team1, team2);
-
-      const row = {
+      allRows.push({
         division: getDivision(team1, team2),
-        data: [m.date, team1, score1, team2, score2, isExh]
-      };
-
-      allRows.push(row);
-
-      if (isExh) {
-        allRows.push({ ...row, division: teamDivisionMap[team1] });
-        allRows.push({ ...row, division: teamDivisionMap[team2] });
-      }
+        exhibition: isExhibition(team1, team2),
+        data: [m.date, team1, score1, team2, score2]
+      });
     });
 
     populateDivisionDropdown(allRows);
@@ -266,21 +264,21 @@ function renderScores(rows) {
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
 
-  rows.forEach(({ data }) => {
-    const [date, awayTeam, awayScore, homeTeam, homeScore, isExh] = data;
+  rows.forEach(({ data, exhibition }) => {
+    const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
     const awayIsWinner = awayScore > homeScore;
     const homeIsWinner = homeScore > awayScore;
+    const dateText = `${date}${exhibition ? ' (EXH)' : ''}`;
 
-    const awayScoreClass = awayIsWinner ? (isExh ? "bold exh" : "bold winner") : "bold";
-    const homeScoreClass = homeIsWinner ? (isExh ? "bold exh" : "bold winner") : "bold";
-    const exhLabel = isExh ? "<span class='exh'>EXH</span> &nbsp;&nbsp;" : "";
+    const awayDisplay = `${awayTeam} <span class="score-bold ${exhibition ? 'exh' : awayIsWinner ? 'winner' : ''}">${awayScore}</span>`;
+    const homeDisplay = `<span class="score-bold ${exhibition ? 'exh' : homeIsWinner ? 'winner' : ''}">${homeScore}</span> ${homeTeam}`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${exhLabel}${date}</td>
-      <td class="${awayScoreClass}">${awayTeam} ${awayScore}</td>
+      <td>${dateText}</td>
+      <td>${awayDisplay}</td>
       <td>—</td>
-      <td class="${homeScoreClass}">${homeScore} ${homeTeam}</td>
+      <td>${homeDisplay}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -288,7 +286,7 @@ function renderScores(rows) {
 
 function filterDivision() {
   const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
+  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected || (r.exhibition && (teamDivisionMap[r.data[1]] === selected || teamDivisionMap[r.data[3]] === selected)));
   renderScores(filtered);
 }
 
