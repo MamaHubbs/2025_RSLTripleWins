@@ -259,15 +259,15 @@ function renderScores(rows) {
     const awayIsWinner = awayScore > homeScore;
     const homeIsWinner = homeScore > awayScore;
 
-    const awayClass = awayIsWinner ? "winner" : "";
-    const homeClass = homeIsWinner ? "winner" : "";
+    const awayScoreSpan = `<strong class="${awayIsWinner ? 'winner' : ''}">${awayScore}</strong>`;
+    const homeScoreSpan = `<strong class="${homeIsWinner ? 'winner' : ''}">${homeScore}</strong>`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${date}</td>
-      <td class="${awayClass}">${awayTeam} ${awayScore}</td>
+      <td>${awayTeam} ${awayScoreSpan}</td>
       <td>—</td>
-      <td class="${homeClass}">${homeScore} ${homeTeam}</td>
+      <td>${homeScoreSpan} ${homeTeam}</td>
     `;
     tbody.appendChild(tr);
   });
