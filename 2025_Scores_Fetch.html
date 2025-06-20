@@ -208,22 +208,64 @@
     });
   }
 
-  function loadWeekData(file) {
-    fetch(file)
-      .then(res => res.json())
-      .then(data => {
-        allRows = data.values.map(row => {
-          const division = getDivision(row[2], row[4]);
-          return { division, data: row };
-        });
-        populateDivisionDropdown(allRows);
-        renderScores(allRows);
-      })
-      .catch(err => {
-        console.error("Failed to load JSON:", err);
-        document.querySelector("#scoresTable tbody").innerHTML = "<tr><td colspan='3'>Unable to load data.</td></tr>";
+function loadWeekData(file) {
+  fetch(file)
+    .then(res => res.json())
+    .then(data => {
+      const merged = new Map();
+
+      data.values.forEach(row => {
+        const [date, meetName, homeTeam, homeScore, awayTeam, awayScore] = row;
+        const key = `${meetName}|${date}`;
+
+        if (!merged.has(key)) {
+          merged.set(key, {
+            date,
+            meetName,
+            homeTeam: null,
+            homeScore: null,
+            awayTeam: null,
+            awayScore: null
+          });
+        }
+
+        const match = merged.get(key);
+
+        // Fill whichever side this row has data for
+        if (homeTeam && homeScore !== null) {
+          match.homeTeam = homeTeam;
+          match.homeScore = homeScore;
+        }
+        if (awayTeam && awayScore !== null) {
+          match.awayTeam = awayTeam;
+          match.awayScore = awayScore;
+        }
       });
-  }
+
+      // Rebuild allRows with division added
+      allRows = Array.from(merged.values).map(m => {
+        const division = getDivision(m.homeTeam, m.awayTeam);
+        return {
+          division,
+          data: [
+            m.date,
+            m.meetName,
+            m.homeTeam,
+            m.homeScore,
+            m.awayTeam,
+            m.awayScore
+          ]
+        };
+      });
+
+      populateDivisionDropdown(allRows);
+      renderScores(allRows);
+    })
+    .catch(err => {
+      console.error("Failed to load JSON:", err);
+      document.querySelector("#scoresTable tbody").innerHTML = "<tr><td colspan='3'>Unable to load data.</td></tr>";
+    });
+}
 
   function populateDivisionDropdown(rows) {
     const divisions = [...new Set(rows.map(row => row.division).filter(Boolean))];
