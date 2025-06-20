@@ -277,7 +277,6 @@ function loadWeekData(selectedFile) {
   });
 }
 
-<script>
 function renderScores(rows) {
   const selectedDivision = document.getElementById("divisionSelect").value;
   const tbody = document.querySelector("#scoresTable tbody");
@@ -288,15 +287,15 @@ function renderScores(rows) {
     const awayWins = awayScore > homeScore;
     const homeWins = homeScore > awayScore;
 
-    const awayInDiv = divisions.includes(selectedDivision) && teamDivisionMap[awayTeam] === selectedDivision;
-    const homeInDiv = divisions.includes(selectedDivision) && teamDivisionMap[homeTeam] === selectedDivision;
+    const awayInDiv = selectedDivision === "all" || teamDivisionMap[awayTeam] === selectedDivision;
+    const homeInDiv = selectedDivision === "all" || teamDivisionMap[homeTeam] === selectedDivision;
 
-    const awayNameClass = isExh ? (awayInDiv ? '' : 'not-in-division') : awayWins ? 'winner-name' : '';
-    const homeNameClass = isExh ? (homeInDiv ? '' : 'not-in-division') : homeWins ? 'winner-name' : '';
+    const awayNameClass = isExh ? (awayInDiv ? '' : 'not-in-division') : (awayWins ? 'winner-name' : '');
+    const homeNameClass = isExh ? (homeInDiv ? '' : 'not-in-division') : (homeWins ? 'winner-name' : '');
 
-    const scoreClass = `score${isExh ? ' exh' : ''}`;
-    const winnerScoreClass = 'score green-bold';
-    const loserScoreClass = scoreClass;
+    const awayScoreClass = isExh ? 'score exh' : (awayWins ? 'winner-score' : 'score');
+    const homeScoreClass = isExh ? 'score exh' : (homeWins ? 'winner-score' : 'score');
+
     const dateText = isExh ? `${date} <span class="exh">(EXH)</span>` : date;
 
     const tr = document.createElement("tr");
@@ -304,11 +303,11 @@ function renderScores(rows) {
       <td>${dateText}</td>
       <td style="text-align: right; padding-right: 10px;">
         <span class="${awayNameClass}">${awayTeam}</span>
-        <span class="${awayWins && !isExh ? winnerScoreClass : loserScoreClass}">${awayScore}</span>
+        <span class="${awayScoreClass}">${awayScore}</span>
       </td>
       <td>—</td>
       <td style="text-align: left; padding-left: 10px;">
-        <span class="${homeWins && !isExh ? winnerScoreClass : loserScoreClass}">${homeScore}</span>
+        <span class="${homeScoreClass}">${homeScore}</span>
         <span class="${homeNameClass}">${homeTeam}</span>
       </td>
     `;
