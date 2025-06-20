@@ -199,16 +199,28 @@ weekFiles.forEach((file, index) => {
     "Idlewild": "National"
   };
 
-  let allRows = [];
+let allRows.push({
+  division: getDivision(team1, team2),
+  data: [m.date, m.meetName, team1, score1, team2, score2]
+});
 
-  function getDivision(team1, team2) {
-    const d1 = teamDivisionMap[team1];
-    const d2 = teamDivisionMap[team2];
-    if (d1 && d2) {
-      return d1 === d2 ? d1 : "Mixed";
-    }
-    return d1 || d2 || "Unknown";
-  }
+const d1 = teamDivisionMap[team1];
+const d2 = teamDivisionMap[team2];
+const isMixed = d1 && d2 && d1 !== d2;
+const isEXH = isMixed ? " (EXH)" : "";
+
+if (d1) {
+  allRows.push({
+    division: d1,
+    data: [m.date, m.meetName + isEXH, team1, score1, team2, score2]
+  });
+}
+if (d2 && d2 !== d1) {
+  allRows.push({
+    division: d2,
+    data: [m.date, m.meetName + isEXH, team1, score1, team2, score2]
+  });
+}
 
   function populateDivisionDropdown(rows) {
     const divisions = [...new Set(rows.map(row => row.division))];
