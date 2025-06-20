@@ -181,7 +181,7 @@ function cleanScore(score) {
 }
 
 function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.flatMap(row => row.divisions))];
+  const divisions = [...new Set(rows.map(row => row.division))];
   const divisionSelect = document.getElementById("divisionSelect");
   divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
   divisions.forEach(div => {
