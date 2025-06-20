@@ -183,145 +183,35 @@
   </div>
 
   <script>
-    const weekSelect = document.getElementById('weekSelect');
-    const dateSelect = document.getElementById('meetDateSelect');
-    const meetSelect = document.getElementById('meetNameSelect');
-    const divisionSelect = document.getElementById('divisionSelect');
-    const teamSelect = document.getElementById('teamSelect');
-    let fullData = [];
-    let weekData = [];
-    let currentSort = { index: null, direction: 1 };
-
-    const teamDivisionMap = {
-      "Massad YMCA": "Battlefield",
-      "Hampton Oaks": "Battlefield",
-      "Woodlands": "Battlefield",
-      "Fawn Lake": "Battlefield",
-      "Spotswood": "Battlefield",
-      "Curtis Park": "Battlefield",
-      "Leeland Station": "Patriot",
-      "Austin Ridge": "Patriot",
-      "Lake of the Woods": "Patriot",
-      "Lee's Hill": "Patriot",
-      "Aquia Harbour": "Patriot",
-      "Dahlgren": "Patriot",
-      "Fox Point": "Patriot",
-      "Fredericksburg CC": "American",
-      "Ferry Farm": "American",
-      "Chancellor": "American",
-      "Hopyard": "American",
-      "Caroline": "American",
-      "Spotsy Y": "American",
-      "Grafton": "National",
-      "College Heights": "National",
-      "Salem Fields": "National",
-      "Lake Wilderness": "National",
-      "Eden Estates": "National",
-      "Idlewild": "National"
-    };
-
-    const weekFiles = [
-      "2025resultsweek01.json",
-      "2025resultsweek02.json"
-    ];
-
-    function loadWeek(fileName) {
-      if (fileName === "all") {
-        Promise.allSettled(weekFiles.map(file => fetch(file).then(r => r.ok ? r.json() : { values: [] })))
-          .then(results => {
-            fullData = results.flatMap(r => r.value?.values || []);
-            weekData = fullData;
-            afterDataLoad();
-          });
-      } else {
-        fetch(fileName)
-          .then(response => response.json())
-          .then(data => {
-            fullData = data.values;
-            weekData = data.values;
-            afterDataLoad();
-          })
-          .catch(error => {
-            console.error('Error loading JSON:', error);
-            document.getElementById('table-container').innerHTML = '';
-            document.getElementById('error-message').style.display = 'block';
-          });
-      }
+    function normalizeString(str) {
+      return str.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
     }
+  </script>
 
-    function afterDataLoad() {
-      clearDropdowns();
-      populateDateDropdown(weekData);
-      populateMeetDropdown(weekData);
-      populateDivisionDropdown(weekData);
-      populateTeamDropdown(weekData);
-      renderTable(weekData);
-    }
+  <script>
+    const athleteSearchInput = document.getElementById('athleteSearch');
+    const oldRenderTable = renderTable;
 
-    function clearDropdowns() {
-      dateSelect.innerHTML = '<option value="all">All Dates</option>';
-      meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
-      teamSelect.innerHTML = '<option value="all">All Teams</option>';
-      dateSelect.value = 'all';
-      meetSelect.value = 'all';
-      divisionSelect.value = 'all';
-      teamSelect.value = 'all';
-    }
-
-    function populateDateDropdown(data) {
-      const uniqueDates = [...new Set(data.map(row => row[5]))];
-      uniqueDates.forEach(date => {
-        const opt = document.createElement('option');
-        opt.value = date;
-        opt.textContent = date;
-        dateSelect.appendChild(opt);
-      });
-    }
-
-    function populateMeetDropdown(data) {
-      const selectedDate = dateSelect.value;
-      const filtered = selectedDate === "all" ? data : data.filter(r => r[5] === selectedDate);
-      const uniqueMeets = [...new Set(filtered.map(row => row[6]))];
-      meetSelect.innerHTML = '<option value="all">All Meets</option>';
-      uniqueMeets.forEach(meet => {
-        const opt = document.createElement('option');
-        opt.value = meet;
-        opt.textContent = meet;
-        meetSelect.appendChild(opt);
-      });
-    }
-
-    function populateDivisionDropdown(data) {
-      const uniqueDivisions = [...new Set(data.map(row => teamDivisionMap[row[2]]).filter(Boolean))];
-      uniqueDivisions.forEach(div => {
-        const opt = document.createElement('option');
-        opt.value = div;
-        opt.textContent = div;
-        divisionSelect.appendChild(opt);
-      });
-    }
-
-    function populateTeamDropdown(data) {
-      const uniqueTeams = [...new Set(data.map(row => row[2]))].sort();
-      uniqueTeams.forEach(team => {
-        const opt = document.createElement('option');
-        opt.value = team;
-        opt.textContent = team;
-        teamSelect.appendChild(opt);
-      });
-    }
-
-    function renderTable(data) {
+    renderTable = function(data) {
       let filtered = [...data];
       if (dateSelect.value !== 'all') filtered = filtered.filter(row => row[5] === dateSelect.value);
       if (meetSelect.value !== 'all') filtered = filtered.filter(row => row[6] === meetSelect.value);
       if (divisionSelect.value !== 'all') filtered = filtered.filter(row => teamDivisionMap[row[2]] === divisionSelect.value);
       if (teamSelect.value !== 'all') filtered = filtered.filter(row => row[2] === teamSelect.value);
 
-      const search = document.getElementById('athleteSearch')?.value?.trim().toLowerCase();
+      const search = athleteSearchInput.value.trim().toLowerCase();
       if (search) {
-        filtered = filtered.filter(row => row[0].toLowerCase().includes(search));
+        filtered = filtered.filter(row => normalizeString(row[0]).includes(normalizeString(search)));
+      }
+
+      if (currentSort.index !== null) {
+        filtered.sort((a, b) => {
+          const valA = a[currentSort.index];
+          const valB = b[currentSort.index];
+          return typeof valA === 'number'
+            ? currentSort.direction * (valA - valB)
+            : currentSort.direction * String(valA).localeCompare(String(valB));
+        });
       }
 
       const grouped = {};
@@ -378,7 +268,7 @@
               }
             }
             if (i === 0 && colIndex === 0) {
-td.innerHTML = `<strong>${displayValue}</strong>`;
+              td.innerHTML = `<strong>${displayValue}</strong>`;
             } else if (i !== 0 && colIndex < 3) {
               td.innerHTML = '';
             } else {
@@ -394,42 +284,8 @@ td.innerHTML = `<strong>${displayValue}</strong>`;
       table.appendChild(tbody);
       document.getElementById('table-container').innerHTML = '';
       document.getElementById('table-container').appendChild(table);
-    }
-
-    weekSelect.addEventListener('change', () => loadWeek(weekSelect.value));
-    dateSelect.addEventListener('change', () => {
-      populateMeetDropdown(weekData);
-      meetSelect.value = 'all';
-      renderTable(weekData);
-    });
-    meetSelect.addEventListener('change', () => renderTable(weekData));
-    divisionSelect.addEventListener('change', () => renderTable(weekData));
-    teamSelect.addEventListener('change', () => renderTable(weekData));
-
-    function clearFilters() {
-      weekSelect.value = 'all';
-      loadWeek('all');
-    }
-
-    function downloadCSV() {
-      const rows = Array.from(document.querySelectorAll("#table-container table tr"));
-      const csvContent = rows.map(row =>
-        Array.from(row.querySelectorAll("th, td")).map(cell => '"' + cell.textContent.replace(/"/g, '""') + '"').join(",")
-      ).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "TripleWinners.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function printPage() {
-      window.print();
-    }
-
-    loadWeek('all');
+    };
   </script>
+
 </body>
 </html>
