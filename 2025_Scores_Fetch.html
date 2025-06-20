@@ -10,14 +10,12 @@
       background-color: #f8f8f8;
       color: #333;
     }
-
     h1 {
       text-align: center;
       color: #0156B3;
       font-size: 2em;
       margin-bottom: 10px;
     }
-
     .dropdown-container {
       position: sticky;
       top: 0;
@@ -28,30 +26,25 @@
       border-bottom: 1px solid #ccc;
       font-size: 0.7em;
     }
-
     .dropdown-box {
       display: inline-block;
       margin: 0 4px;
     }
-
     label {
       font-weight: bold;
       display: block;
       margin-bottom: 6px;
     }
-
     .label {
       color: #888;
       font-style: italic;
       font-size: 0.85em;
     }
-
     select {
       padding: 3px 6px;
       font-size: 0.7em;
       border-radius: 4px;
     }
-
     table {
       width: 500px;
       margin: 10px auto;
@@ -59,31 +52,26 @@
       font-size: 0.68em;
       margin-top: 10px;
     }
-
     th, td {
       padding: 6px 10px;
       border: 1px solid #ccc;
       text-align: center;
       vertical-align: middle;
     }
-
     th {
       background-color: #e5f1ff;
       position: sticky;
       top: 0;
       z-index: 1;
     }
-
     .winner {
       font-weight: bold;
       color: green;
     }
-
     .button-bar {
       text-align: center;
       margin-top: 10px;
     }
-
     .button-bar button {
       padding: 6px 14px;
       font-size: 0.9em;
@@ -93,241 +81,149 @@
       cursor: pointer;
       margin-right: 10px;
     }
-
     .csv-btn, .print-btn {
       background-color: #08b211;
     }
-
     .clear-btn {
       background-color: #0156B3;
     }
   </style>
 </head>
 <body>
-
-<h1>2025 RSL Meet Scores</h1>
-
-<div class="dropdown-container">
-  <div class="dropdown-box">
-    <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="loadWeekData(this.value)"></select>
+  <h1>2025 RSL Meet Scores</h1>
+  <div class="dropdown-container">
+    <div class="dropdown-box">
+      <label for="weekSelect">Week</label>
+      <select id="weekSelect" onchange="loadWeekData(this.value)"></select>
+    </div>
+    <div class="dropdown-box">
+      <label for="divisionSelect">Division</label>
+      <select id="divisionSelect" onchange="filterDivision()">
+        <option value="all">All Divisions</option>
+      </select>
+    </div>
   </div>
-  <div class="dropdown-box">
-    <label for="divisionSelect">Division</label>
-    <select id="divisionSelect" onchange="filterDivision()">
-      <option value="all">All Divisions</option>
-    </select>
+  <div class="button-bar">
+    <button class="csv-btn" onclick="downloadCSV()">Download CSV</button>
+    <button class="print-btn" onclick="printPage()">Print PDF</button>
+    <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
   </div>
-</div>
+  <table id="scoresTable">
+    <thead><tr><th>Date</th><th>Score</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    const weekDateMap = {
+      "2025scoresweek01.json": "06/08/2025",
+      "2025scoresweek02.json": "06/15/2025"
+    };
+    const weekFiles = Object.keys(weekDateMap);
+    const latestWeekFile = weekFiles[weekFiles.length - 1];
+    const teamDivisionMap = {
+      "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield",
+      "Woodlands": "Battlefield", "Fawn Lake": "Battlefield",
+      "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
+      "Leeland Station": "Patriot", "Austin Ridge": "Patriot",
+      "Lake of the Woods": "Patriot", "Lee's Hill": "Patriot",
+      "Aquia Harbour": "Patriot", "Dahlgren": "Patriot",
+      "Fox Point": "Patriot", "Fredericksburg CC": "American",
+      "Ferry Farm": "American", "Chancellor": "American",
+      "Hopyard": "American", "Caroline": "American",
+      "Spotsy Y": "American", "Grafton": "National",
+      "College Heights": "National", "Salem Fields": "National",
+      "Lake Wilderness": "National", "Eden Estates": "National",
+      "Idlewild": "National"
+    };
 
-<div class="button-bar">
-  <button class="csv-btn" onclick="downloadCSV()">Download CSV</button>
-  <button class="print-btn" onclick="printPage()">Print PDF</button>
-  <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
-</div>
-
-<table id="scoresTable">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Score</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-<script>
-const weekDateMap = {
-  "2025scoresweek01.json": "06/08/2025",
-  "2025scoresweek02.json": "06/15/2025",
-};
-
-const weekFiles = Object.keys(weekDateMap).sort();
-const latestWeekFile = weekFiles[weekFiles.length - 1];
-
-const weekSelect = document.getElementById("weekSelect");
-weekSelect.innerHTML = '<option value="all">All Weeks</option>';
-
-weekFiles.forEach((file, index) => {
-  const option = document.createElement("option");
-  option.value = file;
-  option.textContent = `Week #${index + 1} (${weekDateMap[file]})`;
-  if (file === latestWeekFile) option.selected = true;
-  weekSelect.appendChild(option);
-});
-
-const teamDivisionMap = {
-  "Massad YMCA": "Battlefield",
-  "Hampton Oaks": "Battlefield",
-  "Woodlands": "Battlefield",
-  "Fawn Lake": "Battlefield",
-  "Spotswood": "Battlefield",
-  "Curtis Park": "Battlefield",
-  "Leeland Station": "Patriot",
-  "Austin Ridge": "Patriot",
-  "Lake of the Woods": "Patriot",
-  "Lee's Hill": "Patriot",
-  "Aquia Harbour": "Patriot",
-  "Dahlgren": "Patriot",
-  "Fox Point": "Patriot",
-  "Fredericksburg CC": "American",
-  "Ferry Farm": "American",
-  "Chancellor": "American",
-  "Hopyard": "American",
-  "Caroline": "American",
-  "Spotsy Y": "American",
-  "Grafton": "National",
-  "College Heights": "National",
-  "Salem Fields": "National",
-  "Lake Wilderness": "National",
-  "Eden Estates": "National",
-  "Idlewild": "National"
-};
-
-let allRows = [];
-
-function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.map(row => row.division))];
-  const divisionSelect = document.getElementById("divisionSelect");
-  divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
-  divisions.forEach(div => {
-    const opt = document.createElement("option");
-    opt.value = div;
-    opt.text = div;
-    divisionSelect.appendChild(opt);
-  });
-}
-
-function loadWeekData(selectedFile) {
-  const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
-  const merged = new Map();
-  allRows = [];
-
-  Promise.all(
-    filesToLoad.map(file =>
-      fetch(file)
-        .then(res => res.json())
-        .then(data => {
-          data.values.forEach(row => {
-            const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
-            const key = `${meetName}|${date}`;
-            if (!merged.has(key)) {
-              merged.set(key, { date, meetName, teams: {} });
-            }
-            const match = merged.get(key);
-            if (teamA && scoreA != null) match.teams[teamA] = scoreA;
-            if (teamB && scoreB != null) match.teams[teamB] = scoreB;
-          });
-        })
-        .catch(err => console.error(`Failed to load ${file}`, err))
-    )
-  ).then(() => {
-    merged.forEach((m) => {
-      const teamNames = Object.keys(m.teams);
-      if (teamNames.length !== 2) return;
-      const team1 = teamNames[0];
-      const team2 = teamNames[1];
-      const score1 = m.teams[team1];
-      const score2 = m.teams[team2];
-
-      const d1 = teamDivisionMap[team1];
-      const d2 = teamDivisionMap[team2];
-      const isMixed = d1 && d2 && d1 !== d2;
-      const isEXH = isMixed ? " (EXH)" : "";
-
-      if (d1) {
-        allRows.push({
-          division: d1,
-          data: [m.date, m.meetName + isEXH, team1, score1, team2, score2]
-        });
-      }
-      if (d2 && d2 !== d1) {
-        allRows.push({
-          division: d2,
-          data: [m.date, m.meetName + isEXH, team1, score1, team2, score2]
-        });
-      }
+    const weekSelect = document.getElementById("weekSelect");
+    weekSelect.innerHTML = '<option value="all">All Weeks</option>';
+    weekFiles.forEach((file, i) => {
+      const opt = document.createElement("option");
+      opt.value = file;
+      opt.textContent = `Week #${i + 1} (${weekDateMap[file]})`;
+      if (file === latestWeekFile) opt.selected = true;
+      weekSelect.appendChild(opt);
     });
 
-    populateDivisionDropdown(allRows);
-    renderScores(allRows);
-  });
-}
+    let allRows = [];
 
-function renderScores(rows) {
-  const tbody = document.querySelector("#scoresTable tbody");
-  tbody.innerHTML = "";
+    function loadWeekData(selectedFile) {
+      const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
+      const merged = new Map();
+      allRows = [];
 
-  rows.forEach(({ data }) => {
-    const [date, , homeTeam, homeScore, awayTeam, awayScore] = data;
-    const sHome = parseFloat(homeScore);
-    const sAway = parseFloat(awayScore);
-    const homeIsWinner = sHome > sAway;
-    const awayIsWinner = sAway > sHome;
+      Promise.all(filesToLoad.map(file => fetch(file).then(r => r.json()).then(data => {
+        data.values.forEach(([date, meetName, teamA, scoreA, teamB, scoreB]) => {
+          const key = `${meetName}|${date}`;
+          if (!merged.has(key)) merged.set(key, { date, meetName, teams: {} });
+          if (teamA) merged.get(key).teams[teamA] = scoreA;
+          if (teamB) merged.get(key).teams[teamB] = scoreB;
+        });
+      }))).then(() => {
+        merged.forEach(({ date, meetName, teams }) => {
+          const [team1, team2] = Object.keys(teams);
+          if (!team1 || !team2) return;
+          const score1 = teams[team1], score2 = teams[team2];
+          const d1 = teamDivisionMap[team1], d2 = teamDivisionMap[team2];
+          const isMixed = d1 && d2 && d1 !== d2;
+          const meetLabel = isMixed ? `${meetName} (EXH)` : meetName;
 
-    const awayContent = awayIsWinner
-      ? `<span class="winner"><span class="label">(Away)</span> ✅ ${awayTeam} ${sAway}</span>`
-      : `<span><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`;
-
-    const homeContent = homeIsWinner
-      ? `<span class="winner">${sHome} ${homeTeam} ✅ <span class="label">(Home)</span></span>`
-      : `<span>${sHome} ${homeTeam} <span class="label">(Home)</span></span>`;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${date}</td>
-      <td>${awayContent} — ${homeContent}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function filterDivision() {
-  const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
-  renderScores(filtered);
-}
-
-function clearFilters() {
-  document.getElementById("divisionSelect").value = "all";
-  renderScores(allRows);
-}
-
-function printPage() {
-  window.print();
-}
-
-function downloadCSV() {
-  const headers = ["Date", "Score"];
-  const rows = [];
-  const filtered = document.querySelectorAll("#scoresTable tbody tr");
-  filtered.forEach(tr => {
-    const cells = tr.querySelectorAll("td");
-    if (cells.length === 2) {
-      const date = cells[0].innerText.trim();
-      const score = cells[1].innerText.trim().replace(/\s+/g, " ");
-      rows.push([date, score]);
+          if (d1) allRows.push({ division: d1, data: [date, meetLabel, team1, score1, team2, score2] });
+          if (d2 && d2 !== d1) allRows.push({ division: d2, data: [date, meetLabel, team1, score1, team2, score2] });
+        });
+        populateDivisionDropdown();
+        renderScores(allRows);
+      });
     }
-  });
 
-  let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n"
-    + rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+    function populateDivisionDropdown() {
+      const divisions = [...new Set(allRows.map(r => r.division))];
+      const sel = document.getElementById("divisionSelect");
+      sel.innerHTML = '<option value="all">All Divisions</option>';
+      divisions.forEach(div => {
+        const opt = document.createElement("option");
+        opt.value = div;
+        opt.textContent = div;
+        sel.appendChild(opt);
+      });
+    }
 
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "rsl_meet_scores.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+    function renderScores(rows) {
+      const tbody = document.querySelector("#scoresTable tbody");
+      tbody.innerHTML = "";
+      rows.forEach(({ data: [date, meet, team1, score1, team2, score2] }) => {
+        const s1 = parseFloat(score1), s2 = parseFloat(score2);
+        const t1Win = s1 > s2, t2Win = s2 > s1;
+        const t1 = t1Win ? `<span class='winner'>(Away) ${team1} ${s1} ✅</span>` : `<span>(Away) ${team1} ${s1}</span>`;
+        const t2 = t2Win ? `<span class='winner'>${s2} ${team2} ✅ (Home)</span>` : `<span>${s2} ${team2} (Home)</span>`;
+        tbody.innerHTML += `<tr><td>${date}</td><td>${t1} — ${t2}</td></tr>`;
+      });
+    }
 
-window.onload = function () {
-  const latest = weekFiles[weekFiles.length - 1];
-  document.getElementById("weekSelect").value = latest;
-  loadWeekData(latest);
-};
-</script>
-
+    function filterDivision() {
+      const sel = document.getElementById("divisionSelect").value;
+      const filtered = sel === "all" ? allRows : allRows.filter(r => r.division === sel);
+      renderScores(filtered);
+    }
+    function clearFilters() {
+      document.getElementById("divisionSelect").value = "all";
+      renderScores(allRows);
+    }
+    function printPage() { window.print(); }
+    function downloadCSV() {
+      const rows = [["Date", "Score"]];
+      document.querySelectorAll("#scoresTable tbody tr").forEach(tr => {
+        const cells = tr.querySelectorAll("td");
+        if (cells.length === 2) rows.push([cells[0].innerText, cells[1].innerText.replace(/\s+/g, ' ')]);
+      });
+      const csv = rows.map(r => r.map(cell => `"${cell}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "rsl_meet_scores.csv";
+      link.click();
+    }
+    window.onload = () => loadWeekData(latestWeekFile);
+  </script>
 </body>
 </html>
