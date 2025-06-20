@@ -292,7 +292,7 @@ function renderScores(rows) {
       : `<span><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`;
 
     const homeBlock = homeIsWinner
-      ? `<span class="winner">${sHome} ✅ ${homeTeam} <span class="label">(Home)</span></span>`
+      ? `<span class="winner">✅ ${sHome} ${homeTeam} <span class="label">(Home)</span></span>`
       : `<span>${sHome} ${homeTeam} <span class="label">(Home)</span></span>`;
 
     const scoreDisplay = `${awayBlock} — ${homeBlock}`;
