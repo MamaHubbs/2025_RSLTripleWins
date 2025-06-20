@@ -70,6 +70,16 @@
       z-index: 1;
     }
 
+    th.away-col {
+  text-align: right;
+  padding-right: 10px;
+}
+
+th.home-col {
+  text-align: left;
+  padding-left: 10px;
+}
+    
     .team-name {
   margin-right: 8px;
 }
@@ -155,9 +165,14 @@
 </div>
 
 <table id="scoresTable">
-  <thead>
-    <tr><th style="width: 25%;">Date</th><th style="width: 35%;">Away</th><th style="width: 5%;">—</th><th style="width: 35%;">Home</th></tr>
-  </thead>
+<thead>
+  <tr>
+    <th style="width: 25%;">Date</th>
+    <th class="away-col" style="width: 35%;">Away</th>
+    <th style="width: 5%;">—</th>
+    <th class="home-col" style="width: 35%;">Home</th>
+  </tr>
+</thead>
   <tbody></tbody>
 </table>
 
