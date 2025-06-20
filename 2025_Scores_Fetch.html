@@ -117,6 +117,11 @@ th.home-col {
       color: #888;
     }
 
+      .not-in-division {
+    font-style: italic;
+    color: #666;
+  }
+    
     .button-bar {
       text-align: center;
       margin-top: 10px;
@@ -272,28 +277,41 @@ function loadWeekData(selectedFile) {
   });
 }
 
+<script>
 function renderScores(rows) {
+  const selectedDivision = document.getElementById("divisionSelect").value;
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
 
-  rows.forEach(({ data, isExh }) => {
+  rows.forEach(({ data, isExh, divisions }) => {
     const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
     const awayWins = awayScore > homeScore;
     const homeWins = homeScore > awayScore;
-const awayScoreClass = `${awayWins ? 'winner-score' : 'score'}${isExh ? ' exh' : ''}`;
-const homeScoreClass = `${homeWins ? 'winner-score' : 'score'}${isExh ? ' exh' : ''}`;
-    const awayNameClass = isExh ? 'exh' : awayWins ? 'winner-name' : '';
-    const homeNameClass = isExh ? 'exh' : homeWins ? 'winner-name' : '';
+
+    const awayInDiv = divisions.includes(selectedDivision) && teamDivisionMap[awayTeam] === selectedDivision;
+    const homeInDiv = divisions.includes(selectedDivision) && teamDivisionMap[homeTeam] === selectedDivision;
+
+    const awayNameClass = isExh ? (awayInDiv ? '' : 'not-in-division') : awayWins ? 'winner-name' : '';
+    const homeNameClass = isExh ? (homeInDiv ? '' : 'not-in-division') : homeWins ? 'winner-name' : '';
+
     const scoreClass = `score${isExh ? ' exh' : ''}`;
+    const winnerScoreClass = 'score green-bold';
+    const loserScoreClass = scoreClass;
     const dateText = isExh ? `${date} <span class="exh">(EXH)</span>` : date;
 
-const tr = document.createElement("tr");
-tr.innerHTML = `
-  <td>${dateText}</td>
-  <td class="away-col"><span class="team-name ${awayNameClass}">${awayTeam}</span><span class="${awayScoreClass}">${awayScore}</span></td>
-  <td>—</td>
-  <td class="home-col"><span class="${homeScoreClass}">${homeScore}</span><span class="team-name ${homeNameClass}">${homeTeam}</span></td>
-`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dateText}</td>
+      <td style="text-align: right; padding-right: 10px;">
+        <span class="${awayNameClass}">${awayTeam}</span>
+        <span class="${awayWins && !isExh ? winnerScoreClass : loserScoreClass}">${awayScore}</span>
+      </td>
+      <td>—</td>
+      <td style="text-align: left; padding-left: 10px;">
+        <span class="${homeWins && !isExh ? winnerScoreClass : loserScoreClass}">${homeScore}</span>
+        <span class="${homeNameClass}">${homeTeam}</span>
+      </td>
+    `;
     tbody.appendChild(tr);
   });
 }
