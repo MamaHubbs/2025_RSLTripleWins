@@ -221,14 +221,11 @@ function loadWeekData(selectedFile) {
       const divisions = getDivisions(team1, team2);
       const isExh = divisions.length > 1;
 
-      divisions.forEach(div => {
-        allRows.push({
-          division: div,
-          isExh,
-          data: [m.date, team1, score1, team2, score2]
-        });
-      });
-    });
+allRows.push({
+  divisions,
+  isExh,
+  data: [m.date, team1, score1, team2, score2]
+});
 
     populateDivisionDropdown(allRows);
     renderScores(allRows);
@@ -261,7 +258,9 @@ function renderScores(rows) {
 
 function filterDivision() {
   const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
+  const filtered = selected === "all"
+    ? allRows
+    : allRows.filter(r => r.divisions.includes(selected));
   renderScores(filtered);
 }
 
