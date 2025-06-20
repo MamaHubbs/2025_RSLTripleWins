@@ -222,58 +222,54 @@ weekFiles.forEach((file, index) => {
     });
   }
 
-function loadWeekData(latestWeekFile) {
-  fetch(latestWeekFile)
-    .then(res => res.json())
-    .then(data => {
-      const merged = new Map();
+function loadWeekData(selectedFile) {
+  const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
+  const merged = new Map();
+  allRows = [];
 
-      data.values.forEach(row => {
-        const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
-        const key = `${meetName}|${date}`;
+  Promise.all(
+    filesToLoad.map(file =>
+      fetch(file)
+        .then(res => res.json())
+        .then(data => {
+          data.values.forEach(row => {
+            const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
+            const key = `${meetName}|${date}`;
 
-        if (!merged.has(key)) {
-          merged.set(key, {
-            date,
-            meetName,
-            teams: {} // key: team name, value: score
+            if (!merged.has(key)) {
+              merged.set(key, {
+                date,
+                meetName,
+                teams: {}
+              });
+            }
+
+            const match = merged.get(key);
+            if (teamA && scoreA != null) match.teams[teamA] = scoreA;
+            if (teamB && scoreB != null) match.teams[teamB] = scoreB;
           });
-        }
+        })
+        .catch(err => console.error(`Failed to load ${file}`, err))
+    )
+  ).then(() => {
+    merged.forEach((m) => {
+      const teamNames = Object.keys(m.teams);
+      if (teamNames.length !== 2) return;
 
-        const match = merged.get(key);
+      const team1 = teamNames[0];
+      const team2 = teamNames[1];
+      const score1 = m.teams[team1];
+      const score2 = m.teams[team2];
 
-        if (teamA && scoreA != null) {
-          match.teams[teamA] = scoreA;
-        }
-        if (teamB && scoreB != null) {
-          match.teams[teamB] = scoreB;
-        }
+      allRows.push({
+        division: getDivision(team1, team2),
+        data: [m.date, m.meetName, team1, score1, team2, score2]
       });
-
-      allRows = [];
-
-      merged.forEach((m) => {
-        const teamNames = Object.keys(m.teams);
-        if (teamNames.length !== 2) return; // skip if incomplete
-
-        const team1 = teamNames[0];
-        const team2 = teamNames[1];
-        const score1 = m.teams[team1];
-        const score2 = m.teams[team2];
-
-        allRows.push({
-          division: getDivision(team1, team2),
-          data: [m.date, m.meetName, team1, score1, team2, score2]
-        });
-      });
-
-      populateDivisionDropdown(allRows);
-      renderScores(allRows);
-    })
-    .catch(err => {
-      console.error("Failed to load JSON:", err);
-      document.querySelector("#scoresTable tbody").innerHTML = "<tr><td colspan='3'>Unable to load data.</td></tr>";
     });
+
+    populateDivisionDropdown(allRows);
+    renderScores(allRows);
+  });
 }
 
 function renderScores(rows) {
