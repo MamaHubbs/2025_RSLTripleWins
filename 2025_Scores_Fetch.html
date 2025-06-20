@@ -164,10 +164,9 @@ weekFiles.forEach((file, index) => {
 
 let allRows = [];
 
-function getDivision(team1, team2) {
+function getDivisions(team1, team2) {
   const d1 = teamDivisionMap[team1];
   const d2 = teamDivisionMap[team2];
-  if (d1 && d2 && d1 === d2) return [d1];
   const divisions = [];
   if (d1) divisions.push(d1);
   if (d2 && d2 !== d1) divisions.push(d2);
@@ -175,135 +174,4 @@ function getDivision(team1, team2) {
 }
 
 function cleanScore(score) {
-  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
-  return isNaN(num) ? 0 : num;
-}
-
-function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.flatMap(row => row.divisions))];
-  const divisionSelect = document.getElementById("divisionSelect");
-  divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
-  divisions.forEach(div => {
-    const opt = document.createElement("option");
-    opt.value = div;
-    opt.text = div;
-    divisionSelect.appendChild(opt);
-  });
-}
-
-function loadWeekData(selectedFile) {
-  const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
-  const merged = new Map();
-  allRows = [];
-
-  Promise.all(
-    filesToLoad.map(file =>
-      fetch(file)
-        .then(res => res.json())
-        .then(data => {
-          data.values.forEach(row => {
-            const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
-            const key = `${meetName}|${date}`;
-            if (!merged.has(key)) merged.set(key, { date, meetName, teams: {} });
-            const match = merged.get(key);
-            if (teamA && scoreA != null) match.teams[teamA] = scoreA;
-            if (teamB && scoreB != null) match.teams[teamB] = scoreB;
-          });
-        })
-    )
-  ).then(() => {
-    merged.forEach((m) => {
-      const teamNames = Object.keys(m.teams);
-      if (teamNames.length !== 2) return;
-      const team1 = teamNames[0], team2 = teamNames[1];
-      const score1 = cleanScore(m.teams[team1]), score2 = cleanScore(m.teams[team2]);
-      const divisions = getDivision(team1, team2);
-      const isExh = divisions.length > 1;
-
-      divisions.forEach(div => {
-        allRows.push({
-          division: div,
-          isExh,
-          data: [m.date, team1, score1, team2, score2]
-        });
-      });
-    });
-
-    populateDivisionDropdown(allRows);
-    renderScores(allRows);
-  });
-}
-
-function renderScores(rows) {
-  const tbody = document.querySelector("#scoresTable tbody");
-  tbody.innerHTML = "";
-
-  rows.forEach(({ data, isExh }) => {
-    const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
-    const awayWins = awayScore > homeScore;
-    const homeWins = homeScore > awayScore;
-
-    const awayContent = `
-      <span class="${isExh ? 'exh' : awayWins ? 'winner-name' : ''}">${awayTeam} <span class="score">${awayScore}</span></span>`;
-    const homeContent = `
-      <span class="${isExh ? 'exh' : homeWins ? 'winner-name' : ''}"><span class="score">${homeScore}</span> ${homeTeam}</span>`;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${date}${isExh ? ' <span class="exh">(EXH)</span>' : ''}</td>
-      <td>${awayContent}</td>
-      <td>—</td>
-      <td>${homeContent}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function filterDivision() {
-  const selected = document.getElementById("divisionSelect").value;
-  const filtered = selected === "all" ? allRows : allRows.filter(r => r.division === selected);
-  renderScores(filtered);
-}
-
-function clearFilters() {
-  document.getElementById("divisionSelect").value = "all";
-  renderScores(allRows);
-}
-
-function printPage() {
-  window.print();
-}
-
-function downloadCSV() {
-  const headers = ["Date", "Away", "Home"];
-  const rows = [];
-  document.querySelectorAll("#scoresTable tbody tr").forEach(tr => {
-    const cells = tr.querySelectorAll("td");
-    if (cells.length === 4) {
-      const date = cells[0].innerText.trim();
-      const away = cells[1].innerText.trim();
-      const home = cells[3].innerText.trim();
-      rows.push([date, away, home]);
-    }
-  });
-
-  const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" +
-    rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
-
-  const link = document.createElement("a");
-  link.setAttribute("href", encodeURI(csvContent));
-  link.setAttribute("download", "rsl_meet_scores.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-window.onload = function () {
-  const latest = weekFiles[weekFiles.length - 1];
-  document.getElementById("weekSelect").value = latest;
-  loadWeekData(latest);
-};
-</script>
-
-</body>
-</html>
+  const num = parseFloat((score || '').toString().replace(/[^
