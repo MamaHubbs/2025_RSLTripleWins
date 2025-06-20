@@ -223,7 +223,7 @@ weekFiles.forEach((file, index) => {
   }
 
 function loadWeekData(latestWeekFile) {
-  fetch(file)
+  fetch(latestWeekFile)
     .then(res => res.json())
     .then(data => {
       const merged = new Map();
