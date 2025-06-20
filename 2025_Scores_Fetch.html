@@ -284,13 +284,19 @@ function renderScores(rows) {
     const homeIsWinner = sHome > sAway;
     const awayIsWinner = sAway > sHome;
 
-    const awayTeamLabel = `<span class="label">(Away)</span> ${awayTeam}`;
-    const homeTeamLabel = `${homeTeam} <span class="label">(Home)</span>`;
+    const awayDisplay = `
+      <span class="label">(Away)</span> 
+      <span class="${awayIsWinner ? 'winner' : ''}">
+        ${awayTeam} ${sAway}${awayIsWinner ? '<span class="check">✅</span>' : ''}
+      </span>`;
 
-    const awayScoreDisplay = `<span class="${awayIsWinner ? 'winner' : ''}">${sAway}${awayIsWinner ? '<span class="check">✅</span>' : ''}</span>`;
-    const homeScoreDisplay = `<span class="${homeIsWinner ? 'winner' : ''}">${sHome}${homeIsWinner ? '<span class="check">✅</span>' : ''}</span>`;
+    const homeDisplay = `
+      <span class="${homeIsWinner ? 'winner' : ''}">
+        ${sHome}${homeIsWinner ? '<span class="check">✅</span>' : ''} ${homeTeam}
+      </span> 
+      <span class="label">(Home)</span>`;
 
-    const scoreDisplay = `${awayTeamLabel} ${awayScoreDisplay} — ${homeScoreDisplay} ${homeTeamLabel}`;
+    const scoreDisplay = `${awayDisplay} — ${homeDisplay}`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
