@@ -236,17 +236,36 @@ function loadWeekData(file) {
 function renderScores(rows) {
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
-  rows.forEach(({ date, isExh, away, home, sA, sH }) => {
-    const awStyle = isExh ? 'class="exh"' : (sA > sH ? 'class="winner"' : '');
-    const hmStyle = isExh ? 'class="exh"' : (sH > sA ? 'class="winner"' : '');
-    const label = isExh ? ' (EXH)' : '';
+
+  rows.forEach(({ data }) => {
+    const [date, meetName, teamA, scoreA, teamB, scoreB, isExhibition] = data;
+
+    const team1 = teamA?.trim();
+    const team2 = teamB?.trim();
+
+    const s1 = parseFloat((scoreA || "0").toString().replace(/[^\d.]/g, ""));
+    const s2 = parseFloat((scoreB || "0").toString().replace(/[^\d.]/g, ""));
+
+    const isEXH = isExhibition || meetName.includes("(EXH)");
+
+    let awayContent = `${team1} ${scoreA}`;
+    let homeContent = `${scoreB} ${team2}`;
+
+    if (!isEXH) {
+      if (s1 > s2) {
+        awayContent = `<span class="winner">${team1} ${scoreA}</span>`;
+      } else if (s2 > s1) {
+        homeContent = `<span class="winner">${scoreB} ${team2}</span>`;
+      }
+    } else {
+      awayContent = `<span class="label">${team1} ${scoreA}</span>`;
+      homeContent = `<span class="label">${scoreB} ${team2}</span>`;
+    }
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${date}${label}</td>
-      <td ${awStyle}>${away} ${sA}</td>
-      <td>—</td>
-      <td ${hmStyle}>${sH} ${home}</td>
+      <td>${date}</td>
+      <td class="score-cell">${isEXH ? `<span class="label">EXH</span> ` : ""}${awayContent} — ${homeContent}</td>
     `;
     tbody.appendChild(tr);
   });
