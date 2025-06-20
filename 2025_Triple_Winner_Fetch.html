@@ -182,6 +182,192 @@
     </p>
   </div>
 
+  <script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>2025 RSL Weekly Triple Winner Report</title>
+ <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .dropdown-container {
+      position: sticky;
+      top: 0;
+      background-color: #f8f8f8;
+      padding: 10px;
+      text-align: center;
+      z-index: 10;
+      border-bottom: 1px solid #ccc;
+      font-size: 0.7em;
+    }
+
+    .dropdown-box {
+      display: inline-block;
+      margin: 0 4px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"] {
+      padding: 3px 6px;
+      font-size: 0.7em;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 4px 8px;
+      font-size: 0.7em;
+      border-radius: 4px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e5f1ff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      cursor: pointer;
+    }
+
+    th.sortable::after {
+      content: ' ⇅';
+      font-size: 0.68em;
+      color: #666;
+    }
+
+    th.sorted-asc::after {
+      content: ' ↑';
+      color: #333;
+    }
+
+    th.sorted-desc::after {
+      content: ' ↓';
+      color: #333;
+    }
+
+    .row-group-even {
+      background-color: #ffffff;
+    }
+
+    .row-group-odd {
+      background-color: #f4f4f4;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+    th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+    th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+    th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+    th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+    th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+    th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>2025 RSL Weekly Triple Winner Report</h1>
+
+  <div class="dropdown-container">
+    <div class="dropdown-box">
+      <label for="weekSelect">Select Week:</label>
+      <select id="weekSelect">
+        <option value="all">All Weeks</option>
+        <option value="2025resultsweek01.json">Week #1 (06/08/2025)</option>
+        <option value="2025resultsweek02.json">Week #2 (06/15/2025)</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetDateSelect">Select Meet Date:</label>
+      <select id="meetDateSelect">
+        <option value="all">All Dates</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="divisionSelect">Select Division:</label>
+      <select id="divisionSelect">
+        <option value="all">All Divisions</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="teamSelect">Select Team:</label>
+      <select id="teamSelect">
+        <option value="all">All Teams</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="meetNameSelect">Select Meet:</label>
+      <select id="meetNameSelect">
+        <option value="all">All Meets</option>
+      </select>
+    </div>
+
+    <div class="dropdown-box">
+      <label for="athleteSearch">Search Athlete:</label>
+      <input type="text" id="athleteSearch" placeholder="Enter athlete name" oninput="renderTable(weekData)" />
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 10px;">
+    <button onclick="downloadCSV()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Download CSV</button>
+    <button onclick="printPage()" style="background-color: #08b211; padding: 6px 14px; font-size: 0.9em; border-radius: 6px; color: white; border: none; cursor: pointer; margin-right: 10px;">Print PDF</button>
+    <button onclick="clearFilters()" style="padding: 6px 14px; font-size: 0.9em; border-radius: 6px; background-color: #0156B3; color: white; border: none; cursor: pointer;">Clear Filters</button>
+  </div>
+
+  <div id="table-container">
+    <p class="error" id="error-message" style="display:none;">
+      Could not load results. Please check back later.
+    </p>
+  </div>
+
+  <script>
+
   <script>
     function normalizeString(str) {
       return str.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
