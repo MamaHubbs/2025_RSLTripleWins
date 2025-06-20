@@ -152,7 +152,6 @@
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
   "2025scoresweek02.json": "06/15/2025",
-  // Add more as needed
 };
 
 const weekFiles = Object.keys(weekDateMap).sort();
@@ -165,9 +164,7 @@ weekFiles.forEach((file, index) => {
   const option = document.createElement("option");
   option.value = file;
   option.textContent = `Week #${index + 1} (${weekDateMap[file]})`;
-  if (file === latestWeekFile) {
-    option.selected = true;
-  }
+  if (file === latestWeekFile) option.selected = true;
   weekSelect.appendChild(option);
 });
 
@@ -281,25 +278,20 @@ function renderScores(rows) {
 
     const sHome = homeScore != null ? parseFloat(homeScore) : 0;
     const sAway = awayScore != null ? parseFloat(awayScore) : 0;
+    const isEXH = meetName.includes("EXH");
 
     const homeIsWinner = sHome > sAway;
     const awayIsWinner = sAway > sHome;
 
-    const awayContent = awayIsWinner
-      ? `<span class="winner"><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`
-      : `<span><span class="label">(Away)</span> ${awayTeam} ${sAway}</span>`;
+    const homeClasses = isEXH ? "" : (homeIsWinner ? "winner" : "");
+    const awayClasses = isEXH ? "" : (awayIsWinner ? "winner" : "");
 
-    const homeContent = homeIsWinner
-      ? `<span class="winner">${sHome} ${homeTeam} <span class="label">(Home)</span></span>`
-      : `<span>${sHome} ${homeTeam} <span class="label">(Home)</span></span>`;
-
-    const scoreDisplay = `${awayContent} — ${homeContent}`;
+    const scoreDisplay = `${isEXH ? '<span class='label'>EXH</span>&nbsp;&nbsp;&nbsp;' : ''}` +
+      `<span class="${awayClasses}"><span class="label">(Away)</span> ${awayTeam} ${sAway}</span> — ` +
+      `<span class="${homeClasses}">${sHome} ${homeTeam} <span class="label">(Home)</span></span>`;
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${date}</td>
-      <td>${scoreDisplay}</td>
-    `;
+    tr.innerHTML = `<td>${date}</td><td>${scoreDisplay}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -346,7 +338,6 @@ function downloadCSV() {
   document.body.removeChild(link);
 }
 
-// Initialize
 window.onload = function () {
   const latest = weekFiles[weekFiles.length - 1];
   document.getElementById("weekSelect").value = latest;
