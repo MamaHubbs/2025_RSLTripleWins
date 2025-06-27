@@ -226,7 +226,7 @@ function cleanScore(score) {
 }
 
 function populateDivisionDropdown(rows) {
-const divisions = [...new Set(rows.flatMap(row => row.divisions))];
+  const divisions = [...new Set(rows.flatMap(row => row.divisions))];
   const divisionSelect = document.getElementById("divisionSelect");
   divisionSelect.innerHTML = `<option value="all">All Divisions</option>`;
   divisions.forEach(div => {
@@ -248,29 +248,64 @@ function loadWeekData(selectedFile) {
         .then(res => res.json())
         .then(data => {
           data.values.forEach(row => {
-            const [date, meetName, teamA, scoreA, teamB, scoreB] = row;
+            // Note: The SQL query returns [date, meetName, Home Team, Home Score, Away Team, Away Score, Winner]
+            // But the 'Unknown' values mean we need to combine from two rows.
+            const [date, meetName, homeTeamFromSQL, homeScoreFromSQL, awayTeamFromSQL, awayScoreFromSQL, winnerFromSQL] = row;
             const key = `${meetName}|${date}`;
-            if (!merged.has(key)) merged.set(key, { date, meetName, teams: {} });
-            const match = merged.get(key);
-            if (teamA && scoreA != null) match.teams[teamA] = scoreA;
-            if (teamB && scoreB != null) match.teams[teamB] = scoreB;
+
+            if (!merged.has(key)) {
+                merged.set(key, {
+                    date: date,
+                    meetName: meetName,
+                    homeTeam: null,
+                    homeScore: null,
+                    awayTeam: null,
+                    awayScore: null,
+                    winner: winnerFromSQL // Winner might be 'Unknown' in one row, but we can capture it
+                });
+            }
+
+            const meetRecord = merged.get(key);
+
+            // Populate home team/score if not 'Unknown'
+            if (homeTeamFromSQL !== 'Unknown' && homeTeamFromSQL !== null) {
+                meetRecord.homeTeam = homeTeamFromSQL;
+                meetRecord.homeScore = cleanScore(homeScoreFromSQL);
+            }
+            // Populate away team/score if not 'Unknown'
+            if (awayTeamFromSQL !== 'Unknown' && awayTeamFromSQL !== null) {
+                meetRecord.awayTeam = awayTeamFromSQL;
+                meetRecord.awayScore = cleanScore(awayScoreFromSQL);
+            }
+            // Ensure winner is captured if it's explicitly stated in either row
+            if (winnerFromSQL !== 'Unknown' && winnerFromSQL !== null) {
+                meetRecord.winner = winnerFromSQL;
+            }
           });
         })
     )
   ).then(() => {
-    merged.forEach((m) => {
-      const teamNames = Object.keys(m.teams);
-      if (teamNames.length !== 2) return;
-      const team1 = teamNames[0], team2 = teamNames[1];
-      const score1 = cleanScore(m.teams[team1]), score2 = cleanScore(m.teams[team2]);
-      const divisions = getDivisions(team1, team2);
-      const isExh = divisions.length > 1;
+    // Convert the merged Map values into the final allRows array
+    merged.forEach((meetRecord) => {
+        // Only push records that have both home and away teams identified
+        if (meetRecord.homeTeam && meetRecord.awayTeam) {
+            const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
+            const isExh = divisions.length > 1; // Assuming exhibition if divisions differ
 
-      allRows.push({
-        divisions,
-        isExh,
-        data: [m.date, team1, score1, team2, score2]
-      });
+            allRows.push({
+                divisions,
+                isExh,
+                data: {
+                    date: meetRecord.date,
+                    meetName: meetRecord.meetName,
+                    homeTeam: meetRecord.homeTeam,
+                    homeScore: meetRecord.homeScore,
+                    awayTeam: meetRecord.awayTeam,
+                    awayScore: meetRecord.awayScore,
+                    winner: meetRecord.winner // Pass winner through if needed
+                }
+            });
+        }
     });
 
     populateDivisionDropdown(allRows);
@@ -284,29 +319,29 @@ function renderScores(rows) {
   tbody.innerHTML = "";
 
   rows.forEach(({ data, isExh, divisions }) => {
-    const [date, awayTeam, awayScore, homeTeam, homeScore] = data;
+    // Destructure directly from the 'data' object
+    const { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner } = data;
+
+    // Determine win status based on actual scores
     const awayWins = awayScore > homeScore;
     const homeWins = homeScore > awayScore;
 
-const awayInSelectedDiv = selectedDivision !== "all" && teamDivisionMap[awayTeam] === selectedDivision;
-const homeInSelectedDiv = selectedDivision !== "all" && teamDivisionMap[homeTeam] === selectedDivision;
+    const awayNameClass = isExh
+      ? (selectedDivision !== 'all' && !divisions.includes(selectedDivision) ? 'not-in-division' : '')
+      : awayWins ? 'winner-name' : '';
 
-const awayNameClass = isExh
-  ? (awayInSelectedDiv ? '' : (selectedDivision !== 'all' ? 'not-in-division' : ''))
-  : awayWins ? 'winner-name' : '';
-
-const homeNameClass = isExh
-  ? (homeInSelectedDiv ? '' : (selectedDivision !== 'all' ? 'not-in-division' : ''))
-  : homeWins ? 'winner-name' : '';
+    const homeNameClass = isExh
+      ? (selectedDivision !== 'all' && !divisions.includes(selectedDivision) ? 'not-in-division' : '')
+      : homeWins ? 'winner-name' : '';
 
     const awayScoreClass = isExh ? 'score exh' : (awayWins ? 'winner-score' : 'score');
     const homeScoreClass = isExh ? 'score exh' : (homeWins ? 'winner-score' : 'score');
 
-    const dateText = isExh ? `${date} <span class="exh">(EXH)</span>` : date;
+    const meetNameText = isExh ? `${meetName} <span class="exh">(EXH)</span>` : meetName;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${dateText}</td>
+      <td>${date}</td>
       <td style="text-align: right; padding-right: 20px;">
         <span class="${awayNameClass}">${awayTeam}</span>
         <span class="${awayScoreClass}">${awayScore}</span>
@@ -320,6 +355,8 @@ const homeNameClass = isExh
     tbody.appendChild(tr);
   });
 }
+
+// ... (existing filterDivision, clearFilters, printPage, downloadCSV, window.onload functions) ...
 
 function filterDivision() {
   const selected = document.getElementById("divisionSelect").value;
@@ -339,19 +376,19 @@ function printPage() {
 }
 
 function downloadCSV() {
-  const headers = ["Date", "Away", "Home"];
+  const headers = ["Meet Date", "Meet Name", "Home Team", "Home Score", "Away Team", "Away Score", "Winner"];
   const rows = [];
-  document.querySelectorAll("#scoresTable tbody tr").forEach(tr => {
-    const cells = tr.querySelectorAll("td");
-    if (cells.length === 4) {
-      const date = cells[0].innerText.trim();
-      const away = cells[1].innerText.trim();
-      const home = cells[3].innerText.trim();
-      rows.push([date, away, home]);
-    }
+  document.querySelectorAll("#scoresTable tbody tr").forEach((tr, index) => {
+    // Get original data from allRows based on its index
+    // This assumes the order in the DOM matches allRows, which it should after renderScores
+    const originalData = allRows[index] ? allRows[index].data : {};
+    const { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner } = originalData;
+
+    // Use the actual consolidated data for CSV
+    rows.push([date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner]);
   });
 
-  const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" +
+  const csvContent = "data:text/csv;charset=utf-8," + headers.map(h => `"${h}"`).join(",") + "\n" +
     rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
 
   const link = document.createElement("a");
