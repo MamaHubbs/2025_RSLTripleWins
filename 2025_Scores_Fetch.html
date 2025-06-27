@@ -182,6 +182,8 @@ th.home-col {
 </table>
 
 <script>
+// ... (existing constants and variables) ...
+
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
   "2025scoresweek02.json": "06/15/2025",
@@ -256,12 +258,12 @@ function loadWeekData(selectedFile) {
             if (!merged.has(key)) {
                 merged.set(key, {
                     date: date,
-                    meetName: meetName,
+                    meetName: meetName, // Keep the meetName as is from JSON, it contains (EXH) if applicable
                     homeTeam: null,
                     homeScore: null,
                     awayTeam: null,
                     awayScore: null,
-                    winner: winnerFromSQL // Winner might be 'Unknown' in one row, but we can capture it
+                    winner: winnerFromSQL
                 });
             }
 
@@ -290,19 +292,19 @@ function loadWeekData(selectedFile) {
         // Only push records that have both home and away teams identified
         if (meetRecord.homeTeam && meetRecord.awayTeam) {
             const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
-            const isExh = divisions.length > 1; // Assuming exhibition if divisions differ
+            const isExh = meetRecord.meetName.includes('(EXH)') || divisions.length > 1; // Check meetName for (EXH) OR divisions
 
             allRows.push({
                 divisions,
                 isExh,
                 data: {
                     date: meetRecord.date,
-                    meetName: meetRecord.meetName,
+                    meetName: meetRecord.meetName, // Use the meetName directly from the JSON
                     homeTeam: meetRecord.homeTeam,
                     homeScore: meetRecord.homeScore,
                     awayTeam: meetRecord.awayTeam,
                     awayScore: meetRecord.awayScore,
-                    winner: meetRecord.winner // Pass winner through if needed
+                    winner: meetRecord.winner
                 }
             });
         }
@@ -337,7 +339,8 @@ function renderScores(rows) {
     const awayScoreClass = isExh ? 'score exh' : (awayWins ? 'winner-score' : 'score');
     const homeScoreClass = isExh ? 'score exh' : (homeWins ? 'winner-score' : 'score');
 
-    const meetNameText = isExh ? `${meetName} <span class="exh">(EXH)</span>` : meetName;
+    // Apply 'exh' class to the meet name if it's an exhibition
+    const meetNameClass = isExh ? 'exh' : '';
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -352,7 +355,13 @@ function renderScores(rows) {
         <span class="${homeNameClass}">${homeTeam}</span>
       </td>
     `;
-    tbody.appendChild(tr);
+    // Add the meet name row
+    const meetNameRow = document.createElement("tr");
+    meetNameRow.innerHTML = `
+        <td colspan="4" class="${meetNameClass}" style="text-align: center; font-weight: bold;">${meetName}</td>
+    `;
+    tbody.appendChild(meetNameRow); // Append meet name row first
+    tbody.appendChild(tr); // Then append the scores row
   });
 }
 
@@ -378,13 +387,9 @@ function printPage() {
 function downloadCSV() {
   const headers = ["Meet Date", "Meet Name", "Home Team", "Home Score", "Away Team", "Away Score", "Winner"];
   const rows = [];
-  document.querySelectorAll("#scoresTable tbody tr").forEach((tr, index) => {
-    // Get original data from allRows based on its index
-    // This assumes the order in the DOM matches allRows, which it should after renderScores
-    const originalData = allRows[index] ? allRows[index].data : {};
-    const { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner } = originalData;
-
-    // Use the actual consolidated data for CSV
+  // Iterate through allRows directly for CSV generation
+  allRows.forEach(row => {
+    const { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner } = row.data;
     rows.push([date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner]);
   });
 
