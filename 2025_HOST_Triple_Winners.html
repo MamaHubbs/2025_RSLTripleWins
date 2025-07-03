@@ -146,7 +146,9 @@
     function fetchData() {
       Promise.all([
         fetch("2025resultsweek01.json").then(res => res.ok ? res.json() : { values: [] }),
-        fetch("2025resultsweek02.json").then(res => res.ok ? res.json() : { values: [] })
+        fetch("2025resultsweek02.json").then(res => res.ok ? res.json() : { values: [] }),
+        fetch("2025resultsweek03.json").then(res => res.ok ? res.json() : { values: [] }),
+        fetch("2025resultsweek04.json").then(res => res.ok ? res.json() : { values: [] })
       ])
       .then(results => {
         fullData = results.flatMap(r => r.values || []).filter(row => row[2] === "Hampton Oaks");
