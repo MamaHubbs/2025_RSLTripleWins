@@ -307,26 +307,28 @@ function loadWeekData(selectedFile) {
         })
     )
   ).then(() => {
-    merged.forEach(meetRecord => {
-      if (meetRecord.homeTeam && meetRecord.awayTeam) {
-        const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
-        const isExh = meetRecord.meetName.includes('(EXH)') || divisions.length > 1;
+merged.forEach(meetRecord => {
+  const hasValidTeam = (meetRecord.homeTeam && meetRecord.homeTeam !== "Unknown") || (meetRecord.awayTeam && meetRecord.awayTeam !== "Unknown");
 
-        allRows.push({
-          divisions,
-          isExh,
-          data: {
-            date: meetRecord.date,
-            meetName: meetRecord.meetName,
-            homeTeam: meetRecord.homeTeam,
-            homeScore: meetRecord.homeScore,
-            awayTeam: meetRecord.awayTeam,
-            awayScore: meetRecord.awayScore,
-            winner: meetRecord.winner
-          }
-        });
+  if (hasValidTeam) {
+    const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
+    const isExh = meetRecord.meetName.includes('(EXH)') || divisions.length > 1;
+
+    allRows.push({
+      divisions,
+      isExh,
+      data: {
+        date: meetRecord.date,
+        meetName: meetRecord.meetName,
+        homeTeam: meetRecord.homeTeam,
+        homeScore: meetRecord.homeScore,
+        awayTeam: meetRecord.awayTeam,
+        awayScore: meetRecord.awayScore,
+        winner: meetRecord.winner
       }
     });
+  }
+});
 
     populateDivisionDropdown(allRows);
     renderScores(allRows);
