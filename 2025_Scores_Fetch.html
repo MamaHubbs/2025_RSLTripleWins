@@ -307,10 +307,21 @@ function loadWeekData(selectedFile) {
         })
     )
   ).then(() => {
-merged.forEach(meetRecord => {
-  const hasValidTeam = (meetRecord.homeTeam && meetRecord.homeTeam !== "Unknown") || (meetRecord.awayTeam && meetRecord.awayTeam !== "Unknown");
+const finalsRows = [];
+allRows = [];
 
-  if (hasValidTeam) {
+merged.forEach(meetRecord => {
+  const isFinals = meetRecord.meetName.toLowerCase().includes("division finals") ||
+                   meetRecord.meetName.toLowerCase().includes("finals (exh)");
+
+  const hasValidTeam = (meetRecord.homeTeam && meetRecord.homeTeam !== "Unknown") ||
+                       (meetRecord.awayTeam && meetRecord.awayTeam !== "Unknown");
+
+  if (!hasValidTeam) return;
+
+  if (isFinals) {
+    finalsRows.push(meetRecord); // Store raw for special processing
+  } else {
     const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
     const isExh = meetRecord.meetName.includes('(EXH)') || divisions.length > 1;
 
@@ -334,24 +345,22 @@ merged.forEach(meetRecord => {
     renderScores(allRows);
 
     // === New: Extract Division Finals Results ===
-    const champsTeamScores = new Map();
-    allRows.forEach(({ data }) => {
-      const { meetName, homeTeam, homeScore, awayTeam, awayScore } = data;
-      if (meetName.includes("Division Finals")) {
-        if (homeTeam && homeTeam !== "Unknown" && !champsTeamScores.has(homeTeam)) {
-          champsTeamScores.set(homeTeam, homeScore);
-        }
-        if (awayTeam && awayTeam !== "Unknown" && !champsTeamScores.has(awayTeam)) {
-          champsTeamScores.set(awayTeam, awayScore);
-        }
-      }
-    });
+const champsTeamScores = new Map();
 
-    const champsResults = Array.from(champsTeamScores.entries())
-      .map(([team, score]) => ({ team, score }))
-      .sort((a, b) => b.score - a.score);
+finalsRows.forEach(meet => {
+  if (meet.homeTeam && meet.homeTeam !== "Unknown") {
+    champsTeamScores.set(meet.homeTeam, meet.homeScore);
+  }
+  if (meet.awayTeam && meet.awayTeam !== "Unknown") {
+    champsTeamScores.set(meet.awayTeam, meet.awayScore);
+  }
+});
 
-    renderChampsResults(champsResults);
+const champsResults = Array.from(champsTeamScores.entries())
+  .map(([team, score]) => ({ team, score }))
+  .sort((a, b) => b.score - a.score);
+
+renderChampsResults(champsResults);
   });
 }
 
