@@ -398,11 +398,18 @@ function renderChampsResults(results) {
   }
 
   section.style.display = "block";
+
+  const maxScore = Math.max(...results.map(r => r.score));
+
   results.forEach(({ team, score }) => {
+    const isWinner = score === maxScore;
+    const nameClass = isWinner ? 'winner-name' : '';
+    const scoreClass = isWinner ? 'winner-score' : '';
+
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${team}</td>
-      <td style="text-align:right;">${score}</td>
+      <td class="${nameClass}">${team}</td>
+      <td class="${scoreClass}" style="text-align:right;">${score}</td>
     `;
     tbody.appendChild(row);
   });
