@@ -1,110 +1,177 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>2025 RSL Championship Finals Results</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      padding: 20px;
-      color: #333;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f8f8f8;
+    color: #333;
+  }
 
-    h1 {
-      text-align: center;
-      color: #0156B3;
-      margin-bottom: 30px;
-    }
+  h1 {
+    text-align: center;
+    color: #0156B3;
+    font-size: 2em;
+    margin-bottom: 10px;
+  }
 
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-top: 40px;
-    }
+  .dropdown-container {
+    position: sticky;
+    top: 0;
+    background-color: #f8f8f8;
+    padding: 10px;
+    text-align: center;
+    z-index: 10;
+    border-bottom: 1px solid #ccc;
+    font-size: 0.7em;
+  }
 
-    table {
-      width: 400px;
-      margin: 10px auto 40px auto;
-      border-collapse: collapse;
-      font-size: 0.9em;
-      background-color: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+  .dropdown-box {
+    display: inline-block;
+    margin: 0 4px;
+  }
 
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-align: center;
-    }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+  }
 
-    th {
-      background-color: #e5f1ff;
-    }
+  select, input[type="text"] {
+    padding: 3px 6px;
+    font-size: 0.7em;
+    border-radius: 4px;
+  }
 
-    .winner-name {
-      font-weight: bold;
-      color: green;
-    }
+  button {
+    padding: 4px 8px;
+    font-size: 0.7em;
+    border-radius: 4px;
+    background-color: #0156B3;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
 
-    .winner-score {
-      font-weight: bold;
-      color: green;
-    }
-  </style>
-</head>
-<body>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.68em;
+    margin-top: 10px;
+  }
 
-<h1>2025 RSL Championship Finals Results</h1>
+  th, td {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    text-align: left;
+    vertical-align: top;
+  }
 
-<div id="resultsContainer">
-  <!-- Tables will be injected here -->
-</div>
+  th {
+    background-color: #e5f1ff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    cursor: pointer;
+  }
 
-<script>
-  // Load the finals JSON file
-  fetch('2025scoresweek07.json')
-    .then(res => res.json())
-    .then(data => {
-      const resultsContainer = document.getElementById("resultsContainer");
-      const finalsByMeet = {};
+  th.sortable::after {
+    content: ' ⇅';
+    font-size: 0.68em;
+    color: #666;
+  }
 
-      // Group rows by "Meet Name"
-      data.values.forEach(([date, meetName, team, score]) => {
-        if (!finalsByMeet[meetName]) finalsByMeet[meetName] = [];
-        finalsByMeet[meetName].push({ team, score: parseFloat(score) });
-      });
+  th.sorted-asc::after {
+    content: ' ↑';
+    color: #333;
+  }
 
-      // For each finals meet, render a table
-      Object.entries(finalsByMeet).forEach(([meetName, teams]) => {
-        // Sort teams by score descending
-        teams.sort((a, b) => b.score - a.score);
-        const topScore = teams[0]?.score;
+  th.sorted-desc::after {
+    content: ' ↓';
+    color: #333;
+  }
 
-        // Create table
-        const table = document.createElement("table");
-        table.innerHTML = `
-          <thead>
-            <tr><th>Team</th><th>Score</th></tr>
-          </thead>
-          <tbody>
-            ${teams.map(({ team, score }) => {
-              const isWinner = score === topScore;
-              const nameClass = isWinner ? "winner-name" : "";
-              const scoreClass = isWinner ? "winner-score" : "";
-              return `<tr><td class="${nameClass}">${team}</td><td class="${scoreClass}">${score}</td></tr>`;
-            }).join('')}
-          </tbody>
-        `;
+  .row-group-even {
+    background-color: #ffffff;
+  }
 
-        // Add heading + table to container
-        const heading = document.createElement("h2");
-        heading.textContent = meetName;
-        resultsContainer.appendChild(heading);
-        resultsContainer.appendChild(table);
-      });
-    });
-</script>
+  .row-group-odd {
+    background-color: #f4f4f4;
+  }
 
-</body>
-</html>
+  .error {
+    color: red;
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  th:nth-child(1), td:nth-child(1) { max-width: 140px; }
+  th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
+  th:nth-child(3), td:nth-child(3) { max-width: 100px; }
+  th:nth-child(4), td:nth-child(4) { max-width: 130px; }
+  th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
+  th:nth-child(6), td:nth-child(6) { max-width: 50px; }
+  th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+
+  td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* === Championship Tables (Finals) === */
+  .champs-block {
+    margin-top: 30px;
+  }
+
+  .champs-block h2 {
+    text-align: center;
+    color: #0156B3;
+    font-size: 1.2em;
+    margin-top: 30px;
+  }
+
+  .champs-block table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.68em;
+    margin-top: 10px;
+  }
+
+  .champs-block th,
+  .champs-block td {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .champs-block th {
+    background-color: #e5f1ff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .champs-block td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .champs-block .winner-name {
+    font-weight: bold;
+    color: green;
+  }
+
+  .champs-block .winner-score {
+    font-weight: bold;
+    color: green;
+  }
+
+  .champs-block tbody tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+
+  .champs-block tbody tr:nth-child(odd) {
+    background-color: #f4f4f4;
+  }
+</style>
