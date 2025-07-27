@@ -135,25 +135,29 @@
       background-color: #0156B3;
     }
 
-    #champsResultsSection {
+    .champs-block {
       margin-top: 30px;
-      display: none;
+      width: 100%;
     }
 
-    #champsResultsTable {
+    .champs-block h2 {
+      text-align: center;
+      color: #0156B3;
+    }
+
+    .champs-table {
       width: 400px;
-      margin: 0 auto;
+      margin: 0 auto 20px;
       border-collapse: collapse;
       font-size: 0.68em;
     }
 
-    #champsResultsTable th,
-    #champsResultsTable td {
+    .champs-table th, .champs-table td {
       padding: 6px;
       border: 1px solid #ccc;
     }
 
-    #champsResultsTable th {
+    .champs-table th {
       background-color: #e5f1ff;
     }
   </style>
@@ -193,19 +197,9 @@
   <tbody></tbody>
 </table>
 
-<div id="champsResultsSection">
-  <h2 style="text-align:center; color:#0156B3;">National Division Finals Results</h2>
-  <table id="champsResultsTable">
-    <thead>
-      <tr>
-        <th>Team</th>
-        <th>Score</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div id="champsResultsSection" class="champs-block">
+  <!-- Finals tables will be injected here -->
 </div>
-
 <script>
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
@@ -277,90 +271,43 @@ function loadWeekData(selectedFile) {
         .then(res => res.json())
         .then(data => {
           data.values.forEach(row => {
-            const [date, meetName, homeTeamFromSQL, homeScoreFromSQL, awayTeamFromSQL, awayScoreFromSQL, winnerFromSQL] = row;
-            const key = `${meetName}|${date}`;
+            const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+            const key = `${meetName}|${date}|${homeTeam}|${awayTeam}`;
             if (!merged.has(key)) {
               merged.set(key, {
-                date: date,
-                meetName: meetName,
-                homeTeam: null,
-                homeScore: null,
-                awayTeam: null,
-                awayScore: null,
-                winner: winnerFromSQL
+                date, meetName,
+                homeTeam, homeScore: cleanScore(homeScore),
+                awayTeam, awayScore: cleanScore(awayScore),
+                winner
               });
-            }
-
-            const meetRecord = merged.get(key);
-            if (homeTeamFromSQL !== 'Unknown' && homeTeamFromSQL !== null) {
-              meetRecord.homeTeam = homeTeamFromSQL;
-              meetRecord.homeScore = cleanScore(homeScoreFromSQL);
-            }
-            if (awayTeamFromSQL !== 'Unknown' && awayTeamFromSQL !== null) {
-              meetRecord.awayTeam = awayTeamFromSQL;
-              meetRecord.awayScore = cleanScore(awayScoreFromSQL);
-            }
-            if (winnerFromSQL !== 'Unknown' && winnerFromSQL !== null) {
-              meetRecord.winner = winnerFromSQL;
             }
           });
         })
     )
   ).then(() => {
-const finalsRows = [];
-allRows = [];
+    const finalsMap = new Map();
+    const dualMeets = [];
 
-merged.forEach(meetRecord => {
-  const isFinals = meetRecord.meetName.toLowerCase().includes("division finals") ||
-                   meetRecord.meetName.toLowerCase().includes("finals (exh)");
+    merged.forEach(meet => {
+      const isFinals = /division finals/i.test(meet.meetName);
+      const hasTeam = (meet.homeTeam && meet.homeTeam !== "Unknown") || (meet.awayTeam && meet.awayTeam !== "Unknown");
 
-  const hasValidTeam = (meetRecord.homeTeam && meetRecord.homeTeam !== "Unknown") ||
-                       (meetRecord.awayTeam && meetRecord.awayTeam !== "Unknown");
+      if (!hasTeam) return;
 
-  if (!hasValidTeam) return;
-
-  if (isFinals) {
-    finalsRows.push(meetRecord); // Store raw for special processing
-  } else {
-    const divisions = getDivisions(meetRecord.homeTeam, meetRecord.awayTeam);
-    const isExh = meetRecord.meetName.includes('(EXH)') || divisions.length > 1;
-
-    allRows.push({
-      divisions,
-      isExh,
-      data: {
-        date: meetRecord.date,
-        meetName: meetRecord.meetName,
-        homeTeam: meetRecord.homeTeam,
-        homeScore: meetRecord.homeScore,
-        awayTeam: meetRecord.awayTeam,
-        awayScore: meetRecord.awayScore,
-        winner: meetRecord.winner
+      if (isFinals) {
+        if (!finalsMap.has(meet.meetName)) finalsMap.set(meet.meetName, []);
+        finalsMap.get(meet.meetName).push(meet);
+      } else {
+        const divisions = getDivisions(meet.homeTeam, meet.awayTeam);
+        const isExh = meet.meetName.includes('(EXH)') || divisions.length > 1;
+        dualMeets.push({ divisions, isExh, data: meet });
       }
     });
-  }
-});
 
+    allRows = dualMeets;
     populateDivisionDropdown(allRows);
     renderScores(allRows);
-
-    // === New: Extract Division Finals Results ===
-const champsTeamScores = new Map();
-
-finalsRows.forEach(meet => {
-  if (meet.homeTeam && meet.homeTeam !== "Unknown") {
-    champsTeamScores.set(meet.homeTeam, meet.homeScore);
-  }
-  if (meet.awayTeam && meet.awayTeam !== "Unknown") {
-    champsTeamScores.set(meet.awayTeam, meet.awayScore);
-  }
-});
-
-const champsResults = Array.from(champsTeamScores.entries())
-  .map(([team, score]) => ({ team, score }))
-  .sort((a, b) => b.score - a.score);
-
-renderChampsResults(champsResults);
+    renderChampsBlocks(finalsMap);
   });
 }
 
@@ -396,31 +343,48 @@ function renderScores(rows) {
   });
 }
 
-function renderChampsResults(results) {
+function renderChampsBlocks(finalsMap) {
   const section = document.getElementById("champsResultsSection");
-  const tbody = document.querySelector("#champsResultsTable tbody");
-  tbody.innerHTML = "";
+  section.innerHTML = "";
 
-  if (results.length === 0) {
-    section.style.display = "none";
-    return;
-  }
+  finalsMap.forEach((meets, divisionTitle) => {
+    const teamScores = new Map();
 
-  section.style.display = "block";
+    meets.forEach(meet => {
+      if (meet.homeTeam && meet.homeTeam !== "Unknown") {
+        teamScores.set(meet.homeTeam, Math.max(teamScores.get(meet.homeTeam) || 0, cleanScore(meet.homeScore)));
+      }
+      if (meet.awayTeam && meet.awayTeam !== "Unknown") {
+        teamScores.set(meet.awayTeam, Math.max(teamScores.get(meet.awayTeam) || 0, cleanScore(meet.awayScore)));
+      }
+    });
 
-  const maxScore = Math.max(...results.map(r => r.score));
+    const scores = Array.from(teamScores.entries())
+      .map(([team, score]) => ({ team, score }))
+      .sort((a, b) => b.score - a.score);
+    const maxScore = Math.max(...scores.map(s => s.score));
 
-  results.forEach(({ team, score }) => {
-    const isWinner = score === maxScore;
-    const nameClass = isWinner ? 'winner-name' : '';
-    const scoreClass = isWinner ? 'winner-score' : '';
+    const table = document.createElement("table");
+    table.className = "champs-table";
+    const thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>Team</th><th>Score</th></tr>";
+    table.appendChild(thead);
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="${nameClass}">${team}</td>
-      <td class="${scoreClass}" style="text-align:right;">${score}</td>
-    `;
-    tbody.appendChild(row);
+    const tbody = document.createElement("tbody");
+    scores.forEach(({ team, score }) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="${score === maxScore ? 'winner-name' : ''}">${team}</td>
+        <td class="${score === maxScore ? 'winner-score' : ''}" style="text-align:right;">${score}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    const block = document.createElement("div");
+    block.innerHTML = `<h2>${divisionTitle}</h2>`;
+    block.appendChild(table);
+    section.appendChild(block);
   });
 }
 
@@ -463,6 +427,5 @@ window.onload = function () {
   loadWeekData(latestWeekFile);
 };
 </script>
-
 </body>
 </html>
