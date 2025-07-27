@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>2025 RSL Meet Scores</title>
   <style>
     body {
@@ -70,14 +70,23 @@
       z-index: 1;
     }
 
-    .away-col {
+    th.away-col {
       text-align: right;
       padding-right: 20px;
     }
 
-    .home-col {
+    th.home-col {
       text-align: left;
       padding-left: 20px;
+    }
+
+    .team-name {
+      margin-right: 8px;
+    }
+
+    .home-col .team-name {
+      margin-right: 0;
+      margin-left: 8px;
     }
 
     .winner-name {
@@ -92,6 +101,16 @@
 
     .score {
       font-weight: bold;
+    }
+
+    .away-col {
+      text-align: right;
+      padding-right: 20px;
+    }
+
+    .home-col {
+      text-align: left;
+      padding-left: 20px;
     }
 
     .exh {
@@ -125,6 +144,39 @@
     .clear-btn {
       background-color: #0156B3;
     }
+
+    .division-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.75em;
+      padding: 8px;
+      background-color: #d8eaff;
+    }
+
+    .finals-table {
+      width: 600px;
+      margin: 10px auto;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      table-layout: fixed;
+    }
+
+    .finals-table th,
+    .finals-table td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    .finals-winner {
+      font-weight: bold;
+      color: green;
+    }
+
+    .finals-row:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
   </style>
 </head>
 <body>
@@ -150,17 +202,7 @@
   <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
 </div>
 
-<table id="scoresTable">
-  <thead>
-    <tr>
-      <th style="width: 25%;">Date</th>
-      <th class="away-col" style="width: 35%;">Away</th>
-      <th style="width: 5%;">—</th>
-      <th class="home-col" style="width: 35%;">Home</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<div id="scoresOutput"></div>
 
 <script>
 const weekDateMap = {
@@ -182,18 +224,22 @@ const teamDivisionMap = {
 
 const weekFiles = Object.keys(weekDateMap);
 const latestWeekFile = weekFiles[weekFiles.length - 1];
-
 const weekSelect = document.getElementById("weekSelect");
-weekSelect.innerHTML = '<option value="all">All Weeks</option>';
+
 weekFiles.forEach((file, index) => {
   const option = document.createElement("option");
   option.value = file;
-  option.textContent = `Week #${index + 1} (${weekDateMap[file]})`;
+  option.textContent = `Week #${index + 1} - ${weekDateMap[file]}`;
   if (file === latestWeekFile) option.selected = true;
   weekSelect.appendChild(option);
 });
 
 let allRows = [];
+
+function cleanScore(score) {
+  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
 
 function getDivisions(team1, team2) {
   const d1 = teamDivisionMap[team1];
@@ -205,9 +251,106 @@ function getDivisions(team1, team2) {
   return divs.length ? divs : ["Unknown"];
 }
 
-function cleanScore(score) {
-  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
-  return isNaN(num) ? 0 : num;
+function loadWeekData(selectedFile) {
+  const output = document.getElementById("scoresOutput");
+  output.innerHTML = "";
+
+  if (selectedFile === "2025scoresweek07.json") {
+    // FINALS PAGE
+    fetch(selectedFile)
+      .then(res => res.json())
+      .then(data => {
+        const finalsByDivision = {};
+
+        data.values.forEach(row => {
+          const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+
+          const teams = [
+            { name: homeTeam, score: cleanScore(homeScore) },
+            { name: awayTeam, score: cleanScore(awayScore) }
+          ];
+
+          teams.forEach(team => {
+            if (team.name && team.name !== "Unknown") {
+              const division = teamDivisionMap[team.name] || "Unknown";
+              if (!finalsByDivision[division]) finalsByDivision[division] = {};
+              finalsByDivision[division][team.name] = team.score;
+            }
+          });
+        });
+
+        Object.keys(finalsByDivision).forEach(division => {
+          const teams = Object.entries(finalsByDivision[division])
+            .map(([name, score]) => ({ name, score }))
+            .sort((a, b) => b.score - a.score);
+
+          const table = document.createElement("table");
+          table.className = "finals-table";
+          const thead = table.createTHead();
+          const header = thead.insertRow();
+          header.innerHTML = `<th colspan="2" class="division-title">${division} Division Finals</th>`;
+          const rowHeader = table.insertRow();
+          rowHeader.innerHTML = `<th>Team</th><th>Points</th>`;
+
+          teams.forEach((team, i) => {
+            const tr = table.insertRow();
+            tr.className = "finals-row";
+            tr.innerHTML = `
+              <td class="${i === 0 ? "finals-winner" : ""}">${team.name}</td>
+              <td class="${i === 0 ? "finals-winner" : ""}">${team.score}</td>
+            `;
+          });
+
+          output.appendChild(table);
+        });
+      });
+
+  } else {
+    // DUAL MEETS
+    const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
+    const merged = new Map();
+    allRows = [];
+
+    Promise.all(
+      filesToLoad.map(file =>
+        fetch(file)
+          .then(res => res.json())
+          .then(data => {
+            data.values.forEach(row => {
+              const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+              const key = `${meetName}|${date}`;
+              if (!merged.has(key)) {
+                merged.set(key, {
+                  date, meetName, homeTeam: null, homeScore: null,
+                  awayTeam: null, awayScore: null, winner
+                });
+              }
+              const r = merged.get(key);
+              if (homeTeam && homeTeam !== "Unknown") {
+                r.homeTeam = homeTeam;
+                r.homeScore = cleanScore(homeScore);
+              }
+              if (awayTeam && awayTeam !== "Unknown") {
+                r.awayTeam = awayTeam;
+                r.awayScore = cleanScore(awayScore);
+              }
+              if (winner && winner !== "Unknown") r.winner = winner;
+            });
+          })
+      )
+    ).then(() => {
+      merged.forEach(r => {
+        if (r.homeTeam && r.awayTeam) {
+          const divisions = getDivisions(r.homeTeam, r.awayTeam);
+          const isExh = r.meetName.includes('(EXH)') || divisions.length > 1;
+          allRows.push({ divisions, isExh, data: r });
+        }
+      });
+
+      populateDivisionDropdown(allRows);
+      renderScores(allRows);
+    });
+  }
 }
 
 function populateDivisionDropdown(rows) {
@@ -222,82 +365,28 @@ function populateDivisionDropdown(rows) {
   });
 }
 
-function loadWeekData(selectedFile) {
-  const filesToLoad = selectedFile === "all" ? weekFiles : [selectedFile];
-  allRows = [];
-
-  if (selectedFile === "2025scoresweek07.json") {
-    // FINALS DISPLAY
-    fetch(selectedFile)
-      .then(res => res.json())
-      .then(data => {
-        const finalsRows = data.values.map(([date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner]) => {
-          return {
-            divisions: getDivisions(homeTeam, awayTeam),
-            isExh: false,
-            data: { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner }
-          };
-        });
-        allRows = finalsRows.sort((a, b) => b.data.homeScore + b.data.awayScore - (a.data.homeScore + a.data.awayScore));
-        populateDivisionDropdown(allRows);
-        renderScores(allRows);
-      });
-    return;
-  }
-
-  const merged = new Map();
-  Promise.all(
-    filesToLoad.map(file =>
-      fetch(file)
-        .then(res => res.json())
-        .then(data => {
-          data.values.forEach(row => {
-            const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
-            const key = `${meetName}|${date}`;
-            if (!merged.has(key)) {
-              merged.set(key, {
-                date, meetName,
-                homeTeam: null, homeScore: null,
-                awayTeam: null, awayScore: null,
-                winner
-              });
-            }
-            const rec = merged.get(key);
-            if (homeTeam !== 'Unknown' && homeTeam) {
-              rec.homeTeam = homeTeam;
-              rec.homeScore = cleanScore(homeScore);
-            }
-            if (awayTeam !== 'Unknown' && awayTeam) {
-              rec.awayTeam = awayTeam;
-              rec.awayScore = cleanScore(awayScore);
-            }
-            if (winner !== 'Unknown' && winner) {
-              rec.winner = winner;
-            }
-          });
-        })
-    )
-  ).then(() => {
-    merged.forEach((rec) => {
-      if (rec.homeTeam && rec.awayTeam) {
-        const divisions = getDivisions(rec.homeTeam, rec.awayTeam);
-        const isExh = rec.meetName.includes("(EXH)") || divisions.length > 1;
-        allRows.push({ divisions, isExh, data: rec });
-      }
-    });
-    populateDivisionDropdown(allRows);
-    renderScores(allRows);
-  });
-}
-
 function renderScores(rows) {
+  const output = document.getElementById("scoresOutput");
+  output.innerHTML = `
+    <table id="scoresTable">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Date</th>
+          <th class="away-col" style="width: 35%;">Away</th>
+          <th style="width: 5%;">—</th>
+          <th class="home-col" style="width: 35%;">Home</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+
   const selectedDivision = document.getElementById("divisionSelect").value;
   const tbody = document.querySelector("#scoresTable tbody");
   tbody.innerHTML = "";
 
   rows.forEach(({ data, isExh, divisions }) => {
     const { date, homeTeam, homeScore, awayTeam, awayScore } = data;
-
     const awayWins = awayScore > homeScore;
     const homeWins = homeScore > awayScore;
 
@@ -312,14 +401,18 @@ function renderScores(rows) {
     const awayScoreClass = isExh ? 'score exh' : (awayWins ? 'winner-score' : 'score');
     const homeScoreClass = isExh ? 'score exh' : (homeWins ? 'winner-score' : 'score');
 
-    const dateText = isExh ? `${date} <span class="exh">(EXH)</span>` : date;
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${dateText}</td>
-      <td class="away-col"><span class="${awayNameClass}">${awayTeam}</span> <span class="${awayScoreClass}">${awayScore}</span></td>
+      <td>${isExh ? date + ' <span class="exh">(EXH)</span>' : date}</td>
+      <td class="away-col">
+        <span class="${awayNameClass}">${awayTeam}</span>
+        <span class="${awayScoreClass}">${awayScore}</span>
+      </td>
       <td>—</td>
-      <td class="home-col"><span class="${homeScoreClass}">${homeScore}</span> <span class="${homeNameClass}">${homeTeam}</span></td>
+      <td class="home-col">
+        <span class="${homeScoreClass}">${homeScore}</span>
+        <span class="${homeNameClass}">${homeTeam}</span>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -344,20 +437,25 @@ function printPage() {
 
 function downloadCSV() {
   const headers = ["Meet Date", "Meet Name", "Home Team", "Home Score", "Away Team", "Away Score", "Winner"];
-  const rows = allRows.map(row => {
+  const rows = [];
+  allRows.forEach(row => {
     const { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner } = row.data;
-    return [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner];
+    rows.push([date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner]);
   });
 
-  const csv = [headers, ...rows].map(r => r.map(String).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" +
+    rows.map(e => e.map(v => `"${v}"`).join(",")).join("\n");
+
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "rsl_meet_scores.csv";
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", "rsl_meet_scores.csv");
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }
 
-window.onload = () => {
+window.onload = function () {
+  document.getElementById("weekSelect").value = latestWeekFile;
   loadWeekData(latestWeekFile);
 };
 </script>
