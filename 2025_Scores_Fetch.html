@@ -1,177 +1,213 @@
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f8f8f8;
-    color: #333;
-  }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2025 RSL Meet Scores</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f8f8;
+      color: #333;
+    }
 
-  h1 {
-    text-align: center;
-    color: #0156B3;
-    font-size: 2em;
-    margin-bottom: 10px;
-  }
+    h1 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
 
-  .dropdown-container {
-    position: sticky;
-    top: 0;
-    background-color: #f8f8f8;
-    padding: 10px;
-    text-align: center;
-    z-index: 10;
-    border-bottom: 1px solid #ccc;
-    font-size: 0.7em;
-  }
+    .dropdown-container {
+      position: sticky;
+      top: 0;
+      background-color: #f8f8f8;
+      padding: 10px;
+      text-align: center;
+      z-index: 10;
+      border-bottom: 1px solid #ccc;
+      font-size: 0.7em;
+    }
 
-  .dropdown-box {
-    display: inline-block;
-    margin: 0 4px;
-  }
+    .dropdown-box {
+      display: inline-block;
+      margin: 0 4px;
+    }
 
-  label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 6px;
-  }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
 
-  select, input[type="text"] {
-    padding: 3px 6px;
-    font-size: 0.7em;
-    border-radius: 4px;
-  }
+    select, input[type="text"] {
+      padding: 3px 6px;
+      font-size: 0.7em;
+      border-radius: 4px;
+    }
 
-  button {
-    padding: 4px 8px;
-    font-size: 0.7em;
-    border-radius: 4px;
-    background-color: #0156B3;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
+    button {
+      padding: 4px 8px;
+      font-size: 0.7em;
+      border-radius: 4px;
+      background-color: #0156B3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.68em;
-    margin-top: 10px;
-  }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      margin-top: 10px;
+    }
 
-  th, td {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    text-align: left;
-    vertical-align: top;
-  }
+    th, td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
 
-  th {
-    background-color: #e5f1ff;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    cursor: pointer;
-  }
+    th {
+      background-color: #e5f1ff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      cursor: pointer;
+    }
 
-  th.sortable::after {
-    content: ' ⇅';
-    font-size: 0.68em;
-    color: #666;
-  }
+    .row-even {
+      background-color: #ffffff;
+    }
 
-  th.sorted-asc::after {
-    content: ' ↑';
-    color: #333;
-  }
+    .row-odd {
+      background-color: #f4f4f4;
+    }
 
-  th.sorted-desc::after {
-    content: ' ↓';
-    color: #333;
-  }
+    .winner-name {
+      font-weight: bold;
+      color: green;
+    }
 
-  .row-group-even {
-    background-color: #ffffff;
-  }
+    .winner-score {
+      font-weight: bold;
+      color: green;
+    }
 
-  .row-group-odd {
-    background-color: #f4f4f4;
-  }
+    .champs-block {
+      margin-top: 30px;
+    }
 
-  .error {
-    color: red;
-    text-align: center;
-    margin-top: 20px;
-  }
+    .champs-block h2 {
+      text-align: center;
+      color: #0156B3;
+      font-size: 1.2em;
+      margin-top: 30px;
+    }
 
-  th:nth-child(1), td:nth-child(1) { max-width: 140px; }
-  th:nth-child(2), td:nth-child(2) { max-width: 25px; text-align: center; }
-  th:nth-child(3), td:nth-child(3) { max-width: 100px; }
-  th:nth-child(4), td:nth-child(4) { max-width: 130px; }
-  th:nth-child(5), td:nth-child(5) { max-width: 70px; text-align: center; }
-  th:nth-child(6), td:nth-child(6) { max-width: 50px; }
-  th:nth-child(7), td:nth-child(7) { max-width: 185px; }
+    .champs-block table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.68em;
+      margin-top: 10px;
+    }
 
-  td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+    .champs-block th,
+    .champs-block td {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
 
-  /* === Championship Tables (Finals) === */
-  .champs-block {
-    margin-top: 30px;
-  }
+    .champs-block tr.row-even {
+      background-color: #ffffff;
+    }
 
-  .champs-block h2 {
-    text-align: center;
-    color: #0156B3;
-    font-size: 1.2em;
-    margin-top: 30px;
-  }
+    .champs-block tr.row-odd {
+      background-color: #f4f4f4;
+    }
 
-  .champs-block table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.68em;
-    margin-top: 10px;
-  }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
 
-  .champs-block th,
-  .champs-block td {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    text-align: left;
-    vertical-align: top;
-  }
+<h1>2025 RSL Meet Scores</h1>
 
-  .champs-block th {
-    background-color: #e5f1ff;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
+<div class="dropdown-container">
+  <div class="dropdown-box">
+    <label for="weekSelect">Week</label>
+    <select id="weekSelect" onchange="loadWeekData(this.value)">
+      <option value="2025scoresweek07.json" selected>Week #7 (07/25–07/27 — RSL Finals)</option>
+    </select>
+  </div>
+</div>
 
-  .champs-block td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+<div id="champsResultsSection" class="champs-block">
+  <!-- Finals tables will be injected here -->
+</div>
 
-  .champs-block .winner-name {
-    font-weight: bold;
-    color: green;
-  }
+<script>
+function loadWeekData(filename) {
+  fetch(filename)
+    .then(res => res.json())
+    .then(data => {
+      const rows = data.values;
+      const champs = {};
 
-  .champs-block .winner-score {
-    font-weight: bold;
-    color: green;
-  }
+      rows.forEach(([date, meetName, team, score]) => {
+        if (!champs[meetName]) champs[meetName] = [];
+        champs[meetName].push({ team, score });
+      });
 
-  .champs-block tbody tr:nth-child(even) {
-    background-color: #ffffff;
-  }
+      renderChampsResults(champs);
+    })
+    .catch(err => {
+      document.getElementById("champsResultsSection").innerHTML =
+        `<div class="error">Error loading data: ${err.message}</div>`;
+    });
+}
 
-  .champs-block tbody tr:nth-child(odd) {
-    background-color: #f4f4f4;
-  }
-</style>
+function renderChampsResults(champsByMeet) {
+  const container = document.getElementById("champsResultsSection");
+  container.innerHTML = "";
+
+  Object.entries(champsByMeet).forEach(([meetName, teamResults]) => {
+    const maxScore = Math.max(...teamResults.map(t => t.score));
+
+    const tableHTML = `
+      <h2>${meetName}</h2>
+      <table>
+        <thead>
+          <tr><th>Team</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          ${teamResults.map((r, i) => {
+            const isWinner = r.score === maxScore;
+            return `
+              <tr class="row-${i % 2 === 0 ? 'even' : 'odd'}">
+                <td class="${isWinner ? 'winner-name' : ''}">${r.team}</td>
+                <td class="${isWinner ? 'winner-score' : ''}" style="text-align:right;">${r.score}</td>
+              </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+
+    container.insertAdjacentHTML("beforeend", tableHTML);
+  });
+}
+
+// Initial load
+loadWeekData("2025scoresweek07.json");
+</script>
+
+</body>
+</html>
