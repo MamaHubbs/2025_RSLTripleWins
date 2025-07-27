@@ -278,7 +278,12 @@ function loadWeekData(selectedFile) {
             }
           });
         });
-
+const finalsWrapper = document.createElement("div");
+finalsWrapper.style.display = "flex";
+finalsWrapper.style.flexWrap = "wrap";
+finalsWrapper.style.justifyContent = "center";
+finalsWrapper.style.gap = "20px";
+        
         Object.keys(finalsByDivision).forEach(division => {
           const teams = Object.entries(finalsByDivision[division])
             .map(([name, score]) => ({ name, score }))
@@ -301,8 +306,11 @@ function loadWeekData(selectedFile) {
             `;
           });
 
-          output.appendChild(table);
+          finalsWrapper.appendChild(table);
         });
+
+        output.appendChild(finalsWrapper);
+        
       });
 
   } else {
