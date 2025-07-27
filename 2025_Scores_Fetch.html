@@ -70,25 +70,6 @@
       z-index: 1;
     }
 
-    th.away-col {
-      text-align: right;
-      padding-right: 20px;
-    }
-
-    th.home-col {
-      text-align: left;
-      padding-left: 20px;
-    }
-
-    .team-name {
-      margin-right: 8px;
-    }
-
-    .home-col .team-name {
-      margin-right: 0;
-      margin-left: 8px;
-    }
-
     .winner-name {
       font-weight: bold;
       color: green;
@@ -112,23 +93,41 @@
       color: #666;
     }
 
-    .champs-grid {
+    #scoresTable {
+      display: block;
+    }
+
+    #champsResultsSection {
+      margin-top: 40px;
+      display: none;
+    }
+
+    .champs-row {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 20px;
-      margin-top: 30px;
+      flex-wrap: wrap;
+      gap: 40px;
     }
 
-    .champs-grid table {
-      width: 300px;
+    .champs-block {
+      width: 280px;
     }
 
-    .champs-grid h2 {
+    .champs-block h3 {
       text-align: center;
       color: #0156B3;
-      margin-bottom: 5px;
-      font-size: 1em;
+    }
+
+    .champs-block table {
+      width: 100%;
+    }
+
+    .champs-block td {
+      text-align: right;
+    }
+
+    .champs-block td:first-child {
+      text-align: left;
     }
   </style>
 </head>
@@ -139,7 +138,13 @@
 <div class="dropdown-container">
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="loadWeekData(this.value)"></select>
+    <select id="weekSelect" onchange="onWeekChange()"></select>
+  </div>
+  <div class="dropdown-box">
+    <label for="divisionSelect">Division</label>
+    <select id="divisionSelect" onchange="renderTable()">
+      <option value="all">All Divisions</option>
+    </select>
   </div>
 </div>
 
@@ -147,106 +152,194 @@
   <thead>
     <tr>
       <th style="width: 25%;">Date</th>
-      <th class="away-col" style="width: 35%;">Away</th>
+      <th style="width: 35%;">Away</th>
       <th style="width: 5%;">—</th>
-      <th class="home-col" style="width: 35%;">Home</th>
+      <th style="width: 35%;">Home</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<div id="champsResultsSection" class="champs-grid"></div>
+<div id="champsResultsSection">
+  <div class="champs-row" id="champsContainer"></div>
+</div>
 
 <script>
 const weekFiles = [
-  "2025scoresweek01.json",
-  "2025scoresweek02.json",
-  "2025scoresweek03.json",
-  "2025scoresweek04.json",
-  "2025scoresweek05.json",
-  "2025scoresweek06.json",
-  "2025scoresweek07.json" // Champs week
+  { file: "2025scoresweek01.json", label: "Week #1 – 06/08/2025" },
+  { file: "2025scoresweek02.json", label: "Week #2 – 06/15/2025" },
+  { file: "2025scoresweek03.json", label: "Week #3 – 06/22/2025" },
+  { file: "2025scoresweek04.json", label: "Week #4 – 06/29/2025" },
+  { file: "2025scoresweek05.json", label: "Week #5 – 07/06/2025" },
+  { file: "2025scoresweek06.json", label: "Week #6 – 07/13/2025" },
+  { file: "2025scoresweek07.json", label: "Week #7 – 07/25–27 2025 (Finals)" }
 ];
 
+const teamDivisionMap = {
+  "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield", "Woodlands": "Battlefield", "Fawn Lake": "Battlefield", "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
+  "Leeland Station": "Patriot", "Austin Ridge": "Patriot", "Lake of the Woods": "Patriot", "Lee's Hill": "Patriot", "Aquia Harbour": "Patriot", "Dahlgren": "Patriot", "Fox Point": "Patriot",
+  "Fredericksburg CC": "American", "Ferry Farm": "American", "Chancellor": "American", "Hopyard": "American", "Caroline": "American", "Spotsy Y": "American",
+  "Grafton": "National", "College Heights": "National", "Salem Fields": "National", "Lake Wilderness": "National", "Eden Estates": "National", "Idlewild": "National"
+};
+
 const weekSelect = document.getElementById("weekSelect");
-weekFiles.forEach((file, i) => {
+weekFiles.forEach(({ file, label }) => {
   const opt = document.createElement("option");
   opt.value = file;
-  opt.textContent = `Week #${i + 1}`;
+  opt.textContent = label;
   weekSelect.appendChild(opt);
 });
+weekSelect.value = "2025scoresweek07.json"; // default to latest
+
+let allRows = [];
+
+function onWeekChange() {
+  const selected = weekSelect.value;
+  if (selected === "2025scoresweek07.json") {
+    document.getElementById("scoresTable").style.display = "none";
+    loadFinals();
+  } else {
+    document.getElementById("scoresTable").style.display = "table";
+    document.getElementById("champsResultsSection").style.display = "none";
+    loadWeekData(selected);
+  }
+}
+
+function cleanScore(score) {
+  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+
+function getDivisions(t1, t2) {
+  const d1 = teamDivisionMap[t1];
+  const d2 = teamDivisionMap[t2];
+  if (d1 && d2 && d1 === d2) return [d1];
+  const divs = [];
+  if (d1) divs.push(d1);
+  if (d2 && d2 !== d1) divs.push(d2);
+  return divs.length ? divs : ["Unknown"];
+}
 
 function loadWeekData(file) {
   fetch(file)
     .then(r => r.json())
     .then(data => {
-      const tbody = document.querySelector("#scoresTable tbody");
-      const champsSection = document.getElementById("champsResultsSection");
-      tbody.innerHTML = "";
-      champsSection.innerHTML = "";
+      const merged = new Map();
+      allRows = [];
 
-      const isChamps = file.includes("week07");
-      if (!isChamps) {
-        data.values.forEach(row => {
-          const [date, meet, home, hScore, away, aScore, winner] = row;
-          const awayWins = aScore > hScore;
-          const homeWins = hScore > aScore;
+      data.values.forEach(row => {
+        const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+        const key = `${meetName}|${date}`;
+        if (!merged.has(key)) {
+          merged.set(key, {
+            date,
+            meetName,
+            homeTeam: null,
+            homeScore: null,
+            awayTeam: null,
+            awayScore: null,
+            winner: winner
+          });
+        }
 
-          const rowHTML = `
-            <tr>
-              <td>${date}</td>
-              <td style="text-align:right; padding-right:20px">
-                <span class="${awayWins ? 'winner-name' : ''}">${away}</span>
-                <span class="${awayWins ? 'winner-score' : 'score'}">${aScore}</span>
-              </td>
-              <td>—</td>
-              <td style="text-align:left; padding-left:20px">
-                <span class="${homeWins ? 'winner-score' : 'score'}">${hScore}</span>
-                <span class="${homeWins ? 'winner-name' : ''}">${home}</span>
-              </td>
-            </tr>`;
-          tbody.insertAdjacentHTML("beforeend", rowHTML);
+        const match = merged.get(key);
+        if (homeTeam && homeTeam !== "Unknown") {
+          match.homeTeam = homeTeam;
+          match.homeScore = cleanScore(homeScore);
+        }
+        if (awayTeam && awayTeam !== "Unknown") {
+          match.awayTeam = awayTeam;
+          match.awayScore = cleanScore(awayScore);
+        }
+      });
+
+      merged.forEach(meet => {
+        const divs = getDivisions(meet.homeTeam, meet.awayTeam);
+        allRows.push({
+          divisions: divs,
+          data: meet
         });
-      } else {
-        const headers = data.fields;
-        const dateIndex = headers.indexOf("Meet Date");
-        const meetIndex = headers.indexOf("Meet Name");
-        const teamIndex = headers.indexOf("Team");
-        const scoreIndex = headers.indexOf("Score");
+      });
 
-        const meets = {};
-        data.values.forEach(row => {
-          const meetName = row[meetIndex];
-          const team = row[teamIndex];
-          const score = row[scoreIndex];
-          if (!meets[meetName]) meets[meetName] = [];
-          meets[meetName].push({ team, score });
-        });
+      const divisions = [...new Set(allRows.flatMap(r => r.divisions))];
+      const divSelect = document.getElementById("divisionSelect");
+      divSelect.innerHTML = `<option value="all">All Divisions</option>`;
+      divisions.forEach(d => {
+        const o = document.createElement("option");
+        o.value = d;
+        o.textContent = d;
+        divSelect.appendChild(o);
+      });
 
-        Object.entries(meets).forEach(([meetName, teams]) => {
-          teams.sort((a, b) => b.score - a.score);
-          const maxScore = teams[0]?.score;
-          const tableHTML = `
-            <div>
-              <h2>${meetName}</h2>
-              <table>
-                <thead><tr><th>Team</th><th>Score</th></tr></thead>
-                <tbody>
-                  ${teams.map((r, i) => `
-                    <tr class="row-${i % 2 === 0 ? 'even' : 'odd'}">
-                      <td class="${r.score === maxScore ? 'winner-name' : ''}">${r.team}</td>
-                      <td class="${r.score === maxScore ? 'winner-score' : ''}" style="text-align:right;">${r.score}</td>
-                    </tr>`).join("")}
-                </tbody>
-              </table>
-            </div>`;
-          champsSection.insertAdjacentHTML("beforeend", tableHTML);
-        });
-      }
+      renderTable();
     });
 }
 
-window.onload = () => loadWeekData(weekFiles[0]);
+function renderTable() {
+  const division = document.getElementById("divisionSelect").value;
+  const tbody = document.querySelector("#scoresTable tbody");
+  tbody.innerHTML = "";
+
+  allRows.forEach(({ divisions, data }) => {
+    if (division !== "all" && !divisions.includes(division)) return;
+
+    const row = document.createElement("tr");
+    const aScore = data.awayScore;
+    const hScore = data.homeScore;
+    const aWin = aScore > hScore;
+    const hWin = hScore > aScore;
+
+    row.innerHTML = `
+      <td>${data.date}</td>
+      <td><span class="${aWin ? 'winner-name' : ''}">${data.awayTeam || ''}</span> <span class="${aWin ? 'winner-score' : ''}">${aScore || ''}</span></td>
+      <td>—</td>
+      <td><span class="${hWin ? 'winner-score' : ''}">${hScore || ''}</span> <span class="${hWin ? 'winner-name' : ''}">${data.homeTeam || ''}</span></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function loadFinals() {
+  fetch("2025scoresweek07.json")
+    .then(r => r.json())
+    .then(data => {
+      const divisionMap = new Map();
+
+      data.values.forEach(([date, meetName, team, score]) => {
+        if (!divisionMap.has(meetName)) divisionMap.set(meetName, []);
+        divisionMap.get(meetName).push({ team, score: parseFloat(score) });
+      });
+
+      const champs = document.getElementById("champsContainer");
+      champs.innerHTML = "";
+
+      divisionMap.forEach((entries, title) => {
+        const sorted = entries.sort((a, b) => b.score - a.score);
+        const maxScore = sorted[0]?.score;
+
+        const block = document.createElement("div");
+        block.className = "champs-block";
+        block.innerHTML = `<h3>${title}</h3><table><tbody></tbody></table>`;
+        const tbody = block.querySelector("tbody");
+
+        sorted.forEach(({ team, score }) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="${score === maxScore ? 'winner-name' : ''}">${team}</td>
+            <td class="${score === maxScore ? 'winner-score' : ''}">${score}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        champs.appendChild(block);
+      });
+
+      document.getElementById("champsResultsSection").style.display = "block";
+    });
+}
+
+window.onload = onWeekChange;
 </script>
+
 </body>
 </html>
