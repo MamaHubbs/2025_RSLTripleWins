@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>2025 RSL Meet Scores</title>
+  <meta charset="UTF-8" />
+  <title>2025 RSL Finals Scores</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -18,71 +18,51 @@
       margin-bottom: 10px;
     }
 
-    .dropdown-container {
-      position: sticky;
-      top: 0;
-      background-color: #f8f8f8;
+    .champs-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    .champs-table-wrapper {
+      width: 300px;
+      background-color: white;
       padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .champs-table-wrapper h2 {
       text-align: center;
-      z-index: 10;
-      border-bottom: 1px solid #ccc;
-      font-size: 0.7em;
-    }
-
-    .dropdown-box {
-      display: inline-block;
-      margin: 0 4px;
-    }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    select, input[type="text"] {
-      padding: 3px 6px;
-      font-size: 0.7em;
-      border-radius: 4px;
-    }
-
-    button {
-      padding: 4px 8px;
-      font-size: 0.7em;
-      border-radius: 4px;
-      background-color: #0156B3;
-      color: white;
-      border: none;
-      cursor: pointer;
+      font-size: 1em;
+      margin-bottom: 10px;
+      color: #0156B3;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.68em;
-      margin-top: 10px;
+      font-size: 0.75em;
     }
 
     th, td {
       padding: 6px 10px;
       border: 1px solid #ccc;
       text-align: left;
-      vertical-align: top;
+      white-space: nowrap;
     }
 
     th {
       background-color: #e5f1ff;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      cursor: pointer;
+      text-align: center;
     }
 
-    .row-even {
+    tr.row-even {
       background-color: #ffffff;
     }
 
-    .row-odd {
+    tr.row-odd {
       background-color: #f4f4f4;
     }
 
@@ -95,119 +75,74 @@
       font-weight: bold;
       color: green;
     }
-
-    .champs-block {
-      margin-top: 30px;
-    }
-
-    .champs-block h2 {
-      text-align: center;
-      color: #0156B3;
-      font-size: 1.2em;
-      margin-top: 30px;
-    }
-
-    .champs-block table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.68em;
-      margin-top: 10px;
-    }
-
-    .champs-block th,
-    .champs-block td {
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .champs-block tr.row-even {
-      background-color: #ffffff;
-    }
-
-    .champs-block tr.row-odd {
-      background-color: #f4f4f4;
-    }
-
-    .error {
-      color: red;
-      text-align: center;
-      margin-top: 20px;
-    }
   </style>
 </head>
 <body>
-
-<h1>2025 RSL Meet Scores</h1>
-
-<div class="dropdown-container">
-  <div class="dropdown-box">
-    <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="loadWeekData(this.value)">
-      <option value="2025scoresweek07.json" selected>Week #7 (07/25–07/27 — RSL Finals)</option>
-    </select>
+  <h1>2025 RSL Championship Meet Results</h1>
+  <div id="champsResultsSection" class="champs-grid">
+    <!-- Tables will be inserted here -->
   </div>
-</div>
 
-<div id="champsResultsSection" class="champs-block">
-  <!-- Finals tables will be injected here -->
-</div>
+  <script>
+    const champsData = {
+      "values": [
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Austin Ridge", 715.5],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Leeland Station", 680.0],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Aquia Harbour", 553.0],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Lee's Hill", 459.0],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Lake of the Woods", 453.5],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Fox Point", 785.0],
+        ["Jul 26,2025", "RSL 2025 Patriot Division Finals", "Dahlgren", 384.0],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "Idlewild", 587.5],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "Salem Fields", 844.0],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "Grafton", 744.5],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "College Heights", 668.0],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "Lake Wilderness", 586.0],
+        ["Jul 25,2025", "RSL 2025 National Division Finals", "Eden Estates", 484.0]
+      ]
+    };
 
-<script>
-function loadWeekData(filename) {
-  fetch(filename)
-    .then(res => res.json())
-    .then(data => {
-      const rows = data.values;
-      const champs = {};
+    function renderChampsTables(data) {
+      const champsSection = document.getElementById("champsResultsSection");
+      const resultsByMeet = {};
 
-      rows.forEach(([date, meetName, team, score]) => {
-        if (!champs[meetName]) champs[meetName] = [];
-        champs[meetName].push({ team, score });
+      data.values.forEach(([date, meetName, team, score]) => {
+        if (!resultsByMeet[meetName]) {
+          resultsByMeet[meetName] = [];
+        }
+        resultsByMeet[meetName].push({ team, score });
       });
 
-      renderChampsResults(champs);
-    })
-    .catch(err => {
-      document.getElementById("champsResultsSection").innerHTML =
-        `<div class="error">Error loading data: ${err.message}</div>`;
-    });
-}
+      Object.entries(resultsByMeet).forEach(([meetName, teamResults]) => {
+        teamResults.sort((a, b) => b.score - a.score);
+        const maxScore = Math.max(...teamResults.map(r => r.score));
 
-function renderChampsResults(champsByMeet) {
-  const container = document.getElementById("champsResultsSection");
-  container.innerHTML = "";
+        const tableHTML = `
+          <div class="champs-table-wrapper">
+            <h2>${meetName}</h2>
+            <table>
+              <thead>
+                <tr><th>Team</th><th>Score</th></tr>
+              </thead>
+              <tbody>
+                ${teamResults.map((r, i) => {
+                  const isWinner = r.score === maxScore;
+                  return `
+                    <tr class="row-${i % 2 === 0 ? 'even' : 'odd'}">
+                      <td class="${isWinner ? 'winner-name' : ''}">${r.team}</td>
+                      <td class="${isWinner ? 'winner-score' : ''}" style="text-align:right;">${r.score}</td>
+                    </tr>`;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
 
-  Object.entries(champsByMeet).forEach(([meetName, teamResults]) => {
-    const maxScore = Math.max(...teamResults.map(t => t.score));
+        champsSection.insertAdjacentHTML("beforeend", tableHTML);
+      });
+    }
 
-    const tableHTML = `
-      <h2>${meetName}</h2>
-      <table>
-        <thead>
-          <tr><th>Team</th><th>Score</th></tr>
-        </thead>
-        <tbody>
-          ${teamResults.map((r, i) => {
-            const isWinner = r.score === maxScore;
-            return `
-              <tr class="row-${i % 2 === 0 ? 'even' : 'odd'}">
-                <td class="${isWinner ? 'winner-name' : ''}">${r.team}</td>
-                <td class="${isWinner ? 'winner-score' : ''}" style="text-align:right;">${r.score}</td>
-              </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    `;
-
-    container.insertAdjacentHTML("beforeend", tableHTML);
-  });
-}
-
-// Initial load
-loadWeekData("2025scoresweek07.json");
-</script>
-
+    renderChampsTables(champsData);
+  </script>
 </body>
 </html>
