@@ -10,14 +10,10 @@
       background-color: #f8f8f8;
       color: #333;
     }
-
     h1 {
       text-align: center;
       color: #0156B3;
-      font-size: 2em;
-      margin-bottom: 10px;
     }
-
     .dropdown-container {
       position: sticky;
       top: 0;
@@ -26,35 +22,29 @@
       text-align: center;
       z-index: 10;
       border-bottom: 1px solid #ccc;
-      font-size: 0.7em;
+      font-size: 0.8em;
     }
-
     .dropdown-box {
       display: inline-block;
-      margin: 0 4px;
+      margin: 0 6px;
     }
-
     label {
       font-weight: bold;
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
-
     select {
-      padding: 3px 6px;
-      font-size: 0.7em;
+      padding: 4px 6px;
+      font-size: 0.9em;
       border-radius: 4px;
     }
-
     table {
       width: 600px;
       margin: 10px auto;
       border-collapse: collapse;
-      font-size: 0.68em;
-      margin-top: 10px;
+      font-size: 0.75em;
       table-layout: fixed;
     }
-
     th, td {
       padding: 6px 10px;
       border: 1px solid #ccc;
@@ -62,72 +52,28 @@
       vertical-align: middle;
       white-space: nowrap;
     }
-
     th {
       background-color: #e5f1ff;
       position: sticky;
       top: 0;
       z-index: 1;
     }
-
-    .winner-name {
+    tbody tr:nth-child(even) {
+      background-color: #f0f8ff;
+    }
+    .winner-name, .winner-score {
       font-weight: bold;
       color: green;
     }
-
-    .winner-score {
-      color: green;
-      font-weight: bold;
-    }
-
     .score {
       font-weight: bold;
     }
-
     .exh {
       color: #888;
     }
-
     .not-in-division {
       font-style: italic;
       color: #666;
-    }
-
-    #scoresTable {
-      display: block;
-    }
-
-    #champsResultsSection {
-      margin-top: 40px;
-      display: none;
-    }
-
-    .champs-row {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 40px;
-    }
-
-    .champs-block {
-      width: 280px;
-    }
-
-    .champs-block h3 {
-      text-align: center;
-      color: #0156B3;
-    }
-
-    .champs-block table {
-      width: 100%;
-    }
-
-    .champs-block td {
-      text-align: right;
-    }
-
-    .champs-block td:first-child {
-      text-align: left;
     }
   </style>
 </head>
@@ -138,11 +84,11 @@
 <div class="dropdown-container">
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
-    <select id="weekSelect" onchange="onWeekChange()"></select>
+    <select id="weekSelect" onchange="loadWeekData(this.value)"></select>
   </div>
   <div class="dropdown-box">
     <label for="divisionSelect">Division</label>
-    <select id="divisionSelect" onchange="renderTable()">
+    <select id="divisionSelect" onchange="filterDivision()">
       <option value="all">All Divisions</option>
     </select>
   </div>
@@ -152,28 +98,24 @@
   <thead>
     <tr>
       <th style="width: 25%;">Date</th>
-      <th style="width: 35%;">Away</th>
+      <th style="width: 35%; text-align:right;">Away</th>
       <th style="width: 5%;">—</th>
-      <th style="width: 35%;">Home</th>
+      <th style="width: 35%; text-align:left;">Home</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<div id="champsResultsSection">
-  <div class="champs-row" id="champsContainer"></div>
-</div>
-
 <script>
-const weekFiles = [
-  { file: "2025scoresweek01.json", label: "Week #1 – 06/08/2025" },
-  { file: "2025scoresweek02.json", label: "Week #2 – 06/15/2025" },
-  { file: "2025scoresweek03.json", label: "Week #3 – 06/22/2025" },
-  { file: "2025scoresweek04.json", label: "Week #4 – 06/29/2025" },
-  { file: "2025scoresweek05.json", label: "Week #5 – 07/06/2025" },
-  { file: "2025scoresweek06.json", label: "Week #6 – 07/13/2025" },
-  { file: "2025scoresweek07.json", label: "Week #7 – 07/25–27 2025 (Finals)" }
-];
+const weekDateMap = {
+  "2025scoresweek01.json": "06/08/2025",
+  "2025scoresweek02.json": "06/15/2025",
+  "2025scoresweek03.json": "06/22/2025",
+  "2025scoresweek04.json": "06/29/2025",
+  "2025scoresweek05.json": "07/06/2025",
+  "2025scoresweek06.json": "07/13/2025",
+  "2025scoresweek07.json": "07/25, 07/26 and 07/27 — 2025 RSL Finals"
+};
 
 const teamDivisionMap = {
   "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield", "Woodlands": "Battlefield", "Fawn Lake": "Battlefield", "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
@@ -182,37 +124,22 @@ const teamDivisionMap = {
   "Grafton": "National", "College Heights": "National", "Salem Fields": "National", "Lake Wilderness": "National", "Eden Estates": "National", "Idlewild": "National"
 };
 
+const weekFiles = Object.keys(weekDateMap);
+const latestWeekFile = weekFiles[weekFiles.length - 1];
 const weekSelect = document.getElementById("weekSelect");
-weekFiles.forEach(({ file, label }) => {
-  const opt = document.createElement("option");
-  opt.value = file;
-  opt.textContent = label;
-  weekSelect.appendChild(opt);
+weekFiles.forEach((file, index) => {
+  const option = document.createElement("option");
+  option.value = file;
+  option.textContent = `Week #${index + 1} - ${weekDateMap[file]}`;
+  if (file === latestWeekFile) option.selected = true;
+  weekSelect.appendChild(option);
 });
-weekSelect.value = "2025scoresweek07.json"; // default to latest
 
 let allRows = [];
 
-function onWeekChange() {
-  const selected = weekSelect.value;
-  if (selected === "2025scoresweek07.json") {
-    document.getElementById("scoresTable").style.display = "none";
-    loadFinals();
-  } else {
-    document.getElementById("scoresTable").style.display = "table";
-    document.getElementById("champsResultsSection").style.display = "none";
-    loadWeekData(selected);
-  }
-}
-
-function cleanScore(score) {
-  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
-  return isNaN(num) ? 0 : num;
-}
-
-function getDivisions(t1, t2) {
-  const d1 = teamDivisionMap[t1];
-  const d2 = teamDivisionMap[t2];
+function getDivisions(team1, team2) {
+  const d1 = teamDivisionMap[team1];
+  const d2 = teamDivisionMap[team2];
   if (d1 && d2 && d1 === d2) return [d1];
   const divs = [];
   if (d1) divs.push(d1);
@@ -220,126 +147,90 @@ function getDivisions(t1, t2) {
   return divs.length ? divs : ["Unknown"];
 }
 
-function loadWeekData(file) {
-  fetch(file)
-    .then(r => r.json())
-    .then(data => {
-      const merged = new Map();
-      allRows = [];
-
-      data.values.forEach(row => {
-        const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
-        const key = `${meetName}|${date}`;
-        if (!merged.has(key)) {
-          merged.set(key, {
-            date,
-            meetName,
-            homeTeam: null,
-            homeScore: null,
-            awayTeam: null,
-            awayScore: null,
-            winner: winner
-          });
-        }
-
-        const match = merged.get(key);
-        if (homeTeam && homeTeam !== "Unknown") {
-          match.homeTeam = homeTeam;
-          match.homeScore = cleanScore(homeScore);
-        }
-        if (awayTeam && awayTeam !== "Unknown") {
-          match.awayTeam = awayTeam;
-          match.awayScore = cleanScore(awayScore);
-        }
-      });
-
-      merged.forEach(meet => {
-        const divs = getDivisions(meet.homeTeam, meet.awayTeam);
-        allRows.push({
-          divisions: divs,
-          data: meet
-        });
-      });
-
-      const divisions = [...new Set(allRows.flatMap(r => r.divisions))];
-      const divSelect = document.getElementById("divisionSelect");
-      divSelect.innerHTML = `<option value="all">All Divisions</option>`;
-      divisions.forEach(d => {
-        const o = document.createElement("option");
-        o.value = d;
-        o.textContent = d;
-        divSelect.appendChild(o);
-      });
-
-      renderTable();
-    });
-}
-
-function renderTable() {
-  const division = document.getElementById("divisionSelect").value;
-  const tbody = document.querySelector("#scoresTable tbody");
-  tbody.innerHTML = "";
-
-  allRows.forEach(({ divisions, data }) => {
-    if (division !== "all" && !divisions.includes(division)) return;
-
-    const row = document.createElement("tr");
-    const aScore = data.awayScore;
-    const hScore = data.homeScore;
-    const aWin = aScore > hScore;
-    const hWin = hScore > aScore;
-
-    row.innerHTML = `
-      <td>${data.date}</td>
-      <td><span class="${aWin ? 'winner-name' : ''}">${data.awayTeam || ''}</span> <span class="${aWin ? 'winner-score' : ''}">${aScore || ''}</span></td>
-      <td>—</td>
-      <td><span class="${hWin ? 'winner-score' : ''}">${hScore || ''}</span> <span class="${hWin ? 'winner-name' : ''}">${data.homeTeam || ''}</span></td>
-    `;
-    tbody.appendChild(row);
+function populateDivisionDropdown(rows) {
+  const divisions = [...new Set(rows.flatMap(r => r.divisions))];
+  const divisionSelect = document.getElementById("divisionSelect");
+  divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
+  divisions.forEach(div => {
+    const opt = document.createElement("option");
+    opt.value = div;
+    opt.textContent = div;
+    divisionSelect.appendChild(opt);
   });
 }
 
-function loadFinals() {
-  fetch("2025scoresweek07.json")
-    .then(r => r.json())
-    .then(data => {
-      const divisionMap = new Map();
-
-      data.values.forEach(([date, meetName, team, score]) => {
-        if (!divisionMap.has(meetName)) divisionMap.set(meetName, []);
-        divisionMap.get(meetName).push({ team, score: parseFloat(score) });
-      });
-
-      const champs = document.getElementById("champsContainer");
-      champs.innerHTML = "";
-
-      divisionMap.forEach((entries, title) => {
-        const sorted = entries.sort((a, b) => b.score - a.score);
-        const maxScore = sorted[0]?.score;
-
-        const block = document.createElement("div");
-        block.className = "champs-block";
-        block.innerHTML = `<h3>${title}</h3><table><tbody></tbody></table>`;
-        const tbody = block.querySelector("tbody");
-
-        sorted.forEach(({ team, score }) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td class="${score === maxScore ? 'winner-name' : ''}">${team}</td>
-            <td class="${score === maxScore ? 'winner-score' : ''}">${score}</td>
-          `;
-          tbody.appendChild(row);
+function loadWeekData(file) {
+  fetch(file).then(res => res.json()).then(data => {
+    const merged = new Map();
+    allRows = [];
+    data.values.forEach(row => {
+      const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+      const key = `${meetName}|${date}`;
+      if (!merged.has(key)) {
+        merged.set(key, {
+          date, meetName,
+          homeTeam: null, awayTeam: null,
+          homeScore: null, awayScore: null,
+          winner: null
         });
-
-        champs.appendChild(block);
-      });
-
-      document.getElementById("champsResultsSection").style.display = "block";
+      }
+      const rec = merged.get(key);
+      if (homeTeam && homeTeam !== 'Unknown') rec.homeTeam = homeTeam;
+      if (awayTeam && awayTeam !== 'Unknown') rec.awayTeam = awayTeam;
+      if (homeScore) rec.homeScore = parseFloat(homeScore);
+      if (awayScore) rec.awayScore = parseFloat(awayScore);
+      if (winner && winner !== 'Unknown') rec.winner = winner;
     });
+
+    merged.forEach(r => {
+      if (r.homeTeam && r.awayTeam) {
+        const divs = getDivisions(r.homeTeam, r.awayTeam);
+        const isExh = r.meetName.includes("(EXH)") || divs.length > 1;
+        allRows.push({
+          data: r,
+          divisions: divs,
+          isExh
+        });
+      }
+    });
+    populateDivisionDropdown(allRows);
+    renderScores(allRows);
+  });
 }
 
-window.onload = onWeekChange;
-</script>
+function renderScores(rows) {
+  const selected = document.getElementById("divisionSelect").value;
+  const tbody = document.querySelector("#scoresTable tbody");
+  tbody.innerHTML = "";
+  rows.filter(r => selected === "all" || r.divisions.includes(selected)).forEach(({ data, isExh, divisions }) => {
+    const { date, homeTeam, homeScore, awayTeam, awayScore, winner } = data;
+    const homeWins = homeScore > awayScore;
+    const awayWins = awayScore > homeScore;
+    const homeScoreClass = isExh ? 'score exh' : homeWins ? 'winner-score' : 'score';
+    const awayScoreClass = isExh ? 'score exh' : awayWins ? 'winner-score' : 'score';
+    const homeNameClass = isExh ? (selected !== 'all' && !divisions.includes(selected) ? 'not-in-division' : '') : homeWins ? 'winner-name' : '';
+    const awayNameClass = isExh ? (selected !== 'all' && !divisions.includes(selected) ? 'not-in-division' : '') : awayWins ? 'winner-name' : '';
 
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${isExh ? `${date} <span class='exh'>(EXH)</span>` : date}</td>
+      <td style="text-align:right;">
+        <span class="${awayNameClass}">${awayTeam}</span> <span class="${awayScoreClass}">${awayScore}</span>
+      </td>
+      <td>—</td>
+      <td style="text-align:left;">
+        <span class="${homeScoreClass}">${homeScore}</span> <span class="${homeNameClass}">${homeTeam}</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterDivision() {
+  const val = document.getElementById("divisionSelect").value;
+  renderScores(val === "all" ? allRows : allRows.filter(r => r.divisions.includes(val)));
+}
+
+window.onload = () => loadWeekData(weekSelect.value);
+</script>
 </body>
 </html>
