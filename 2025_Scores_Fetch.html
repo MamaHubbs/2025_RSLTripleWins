@@ -13,6 +13,8 @@
     h1 {
       text-align: center;
       color: #0156B3;
+      font-size: 2em;
+      margin-bottom: 10px;
     }
     .dropdown-container {
       position: sticky;
@@ -22,27 +24,29 @@
       text-align: center;
       z-index: 10;
       border-bottom: 1px solid #ccc;
-      font-size: 0.8em;
+      font-size: 0.7em;
     }
     .dropdown-box {
       display: inline-block;
-      margin: 0 6px;
+      margin: 0 4px;
     }
     label {
       font-weight: bold;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     select {
-      padding: 4px 6px;
-      font-size: 0.9em;
+      padding: 3px 6px;
+      font-size: 0.7em;
       border-radius: 4px;
     }
     table {
-      width: 600px;
+      width: 90%;
+      max-width: 1000px;
       margin: 10px auto;
       border-collapse: collapse;
-      font-size: 0.75em;
+      font-size: 0.68em;
+      margin-top: 10px;
       table-layout: fixed;
     }
     th, td {
@@ -58,29 +62,42 @@
       top: 0;
       z-index: 1;
     }
-    tbody tr:nth-child(even) {
-      background-color: #f0f8ff;
+    tr:nth-child(even) { background-color: #f2f2f2; }
+    tr:nth-child(odd) { background-color: #ffffff; }
+    .exh { color: #888; }
+    .winner-name, .winner-score { font-weight: bold; color: green; }
+    .score { font-weight: bold; }
+    .not-in-division { font-style: italic; color: #666; }
+    .button-bar {
+      text-align: center;
+      margin-top: 10px;
     }
-    .winner-name, .winner-score {
-      font-weight: bold;
-      color: green;
+    .button-bar button {
+      padding: 6px 14px;
+      font-size: 0.9em;
+      border-radius: 6px;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
     }
-    .score {
-      font-weight: bold;
+    .csv-btn, .print-btn { background-color: #08b211; }
+    .clear-btn { background-color: #0156B3; }
+    .finals-table {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      margin-top: 20px;
     }
-    .exh {
-      color: #888;
-    }
-    .not-in-division {
-      font-style: italic;
-      color: #666;
+    .division-table {
+      width: 460px;
+      margin: 10px;
+      font-size: 0.75em;
     }
   </style>
 </head>
 <body>
-
 <h1>2025 RSL Meet Scores</h1>
-
 <div class="dropdown-container">
   <div class="dropdown-box">
     <label for="weekSelect">Week</label>
@@ -93,19 +110,12 @@
     </select>
   </div>
 </div>
-
-<table id="scoresTable">
-  <thead>
-    <tr>
-      <th style="width: 25%;">Date</th>
-      <th style="width: 35%; text-align:right;">Away</th>
-      <th style="width: 5%;">—</th>
-      <th style="width: 35%; text-align:left;">Home</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
+<div class="button-bar">
+  <button class="csv-btn" onclick="downloadCSV()">Download CSV</button>
+  <button class="print-btn" onclick="printPage()">Print PDF</button>
+  <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
+</div>
+<div id="meetDisplay"></div>
 <script>
 const weekDateMap = {
   "2025scoresweek01.json": "06/08/2025",
@@ -114,42 +124,68 @@ const weekDateMap = {
   "2025scoresweek04.json": "06/29/2025",
   "2025scoresweek05.json": "07/06/2025",
   "2025scoresweek06.json": "07/13/2025",
-  "2025scoresweek07.json": "07/25, 07/26 and 07/27 — 2025 RSL Finals"
+  "2025scoresweek07.json": "07/25–27 Finals"
 };
-
 const teamDivisionMap = {
   "Massad YMCA": "Battlefield", "Hampton Oaks": "Battlefield", "Woodlands": "Battlefield", "Fawn Lake": "Battlefield", "Spotswood": "Battlefield", "Curtis Park": "Battlefield",
   "Leeland Station": "Patriot", "Austin Ridge": "Patriot", "Lake of the Woods": "Patriot", "Lee's Hill": "Patriot", "Aquia Harbour": "Patriot", "Dahlgren": "Patriot", "Fox Point": "Patriot",
   "Fredericksburg CC": "American", "Ferry Farm": "American", "Chancellor": "American", "Hopyard": "American", "Caroline": "American", "Spotsy Y": "American",
   "Grafton": "National", "College Heights": "National", "Salem Fields": "National", "Lake Wilderness": "National", "Eden Estates": "National", "Idlewild": "National"
 };
-
 const weekFiles = Object.keys(weekDateMap);
-const latestWeekFile = weekFiles[weekFiles.length - 1];
 const weekSelect = document.getElementById("weekSelect");
+const divisionSelect = document.getElementById("divisionSelect");
 weekFiles.forEach((file, index) => {
-  const option = document.createElement("option");
-  option.value = file;
-  option.textContent = `Week #${index + 1} - ${weekDateMap[file]}`;
-  if (file === latestWeekFile) option.selected = true;
-  weekSelect.appendChild(option);
+  const opt = document.createElement("option");
+  opt.value = file;
+  opt.textContent = `Week #${index + 1} (${weekDateMap[file]})`;
+  if (index === weekFiles.length - 1) opt.selected = true;
+  weekSelect.appendChild(opt);
 });
-
 let allRows = [];
-
+function cleanScore(score) {
+  const num = parseFloat((score || '').toString().replace(/[^\d.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
 function getDivisions(team1, team2) {
   const d1 = teamDivisionMap[team1];
   const d2 = teamDivisionMap[team2];
-  if (d1 && d2 && d1 === d2) return [d1];
-  const divs = [];
-  if (d1) divs.push(d1);
-  if (d2 && d2 !== d1) divs.push(d2);
-  return divs.length ? divs : ["Unknown"];
+  return d1 === d2 && d1 ? [d1] : [...new Set([d1, d2].filter(Boolean))];
 }
-
+function loadWeekData(selectedFile) {
+  fetch(selectedFile).then(res => res.json()).then(data => {
+    document.getElementById("meetDisplay").innerHTML = "";
+    if (selectedFile === "2025scoresweek07.json") {
+      renderFinals(data.values);
+      return;
+    }
+    const merged = new Map();
+    allRows = [];
+    data.values.forEach(row => {
+      const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
+      const key = `${meetName}|${date}`;
+      if (!merged.has(key)) merged.set(key, {});
+      const m = merged.get(key);
+      if (homeTeam !== 'Unknown') { m.homeTeam = homeTeam; m.homeScore = cleanScore(homeScore); }
+      if (awayTeam !== 'Unknown') { m.awayTeam = awayTeam; m.awayScore = cleanScore(awayScore); }
+      m.date = date; m.meetName = meetName; m.winner = winner;
+    });
+    merged.forEach(({ date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner }) => {
+      if (homeTeam && awayTeam) {
+        const divisions = getDivisions(homeTeam, awayTeam);
+        const isExh = meetName.includes("EXH") || divisions.length > 1;
+        allRows.push({
+          divisions, isExh,
+          data: { date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner }
+        });
+      }
+    });
+    populateDivisionDropdown(allRows);
+    renderScores(allRows);
+  });
+}
 function populateDivisionDropdown(rows) {
-  const divisions = [...new Set(rows.flatMap(r => r.divisions))];
-  const divisionSelect = document.getElementById("divisionSelect");
+  const divisions = [...new Set(rows.flatMap(row => row.divisions))];
   divisionSelect.innerHTML = '<option value="all">All Divisions</option>';
   divisions.forEach(div => {
     const opt = document.createElement("option");
@@ -158,78 +194,75 @@ function populateDivisionDropdown(rows) {
     divisionSelect.appendChild(opt);
   });
 }
-
-function loadWeekData(file) {
-  fetch(file).then(res => res.json()).then(data => {
-    const merged = new Map();
-    allRows = [];
-    data.values.forEach(row => {
-      const [date, meetName, homeTeam, homeScore, awayTeam, awayScore, winner] = row;
-      const key = `${meetName}|${date}`;
-      if (!merged.has(key)) {
-        merged.set(key, {
-          date, meetName,
-          homeTeam: null, awayTeam: null,
-          homeScore: null, awayScore: null,
-          winner: null
-        });
-      }
-      const rec = merged.get(key);
-      if (homeTeam && homeTeam !== 'Unknown') rec.homeTeam = homeTeam;
-      if (awayTeam && awayTeam !== 'Unknown') rec.awayTeam = awayTeam;
-      if (homeScore) rec.homeScore = parseFloat(homeScore);
-      if (awayScore) rec.awayScore = parseFloat(awayScore);
-      if (winner && winner !== 'Unknown') rec.winner = winner;
-    });
-
-    merged.forEach(r => {
-      if (r.homeTeam && r.awayTeam) {
-        const divs = getDivisions(r.homeTeam, r.awayTeam);
-        const isExh = r.meetName.includes("(EXH)") || divs.length > 1;
-        allRows.push({
-          data: r,
-          divisions: divs,
-          isExh
-        });
-      }
-    });
-    populateDivisionDropdown(allRows);
-    renderScores(allRows);
-  });
-}
-
 function renderScores(rows) {
-  const selected = document.getElementById("divisionSelect").value;
-  const tbody = document.querySelector("#scoresTable tbody");
-  tbody.innerHTML = "";
-  rows.filter(r => selected === "all" || r.divisions.includes(selected)).forEach(({ data, isExh, divisions }) => {
-    const { date, homeTeam, homeScore, awayTeam, awayScore, winner } = data;
-    const homeWins = homeScore > awayScore;
-    const awayWins = awayScore > homeScore;
-    const homeScoreClass = isExh ? 'score exh' : homeWins ? 'winner-score' : 'score';
-    const awayScoreClass = isExh ? 'score exh' : awayWins ? 'winner-score' : 'score';
-    const homeNameClass = isExh ? (selected !== 'all' && !divisions.includes(selected) ? 'not-in-division' : '') : homeWins ? 'winner-name' : '';
-    const awayNameClass = isExh ? (selected !== 'all' && !divisions.includes(selected) ? 'not-in-division' : '') : awayWins ? 'winner-name' : '';
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+  const selected = divisionSelect.value;
+  const filtered = selected === "all" ? rows : rows.filter(r => r.divisions.includes(selected));
+  const table = document.createElement("table");
+  table.innerHTML = `
+    <thead><tr><th style="width:25%">Date</th><th style="width:35%">Away</th><th>—</th><th style="width:35%">Home</th></tr></thead>
+    <tbody></tbody>`;
+  const tbody = table.querySelector("tbody");
+  filtered.forEach(({ data, isExh, divisions }) => {
+    const { date, homeTeam, homeScore, awayTeam, awayScore } = data;
+    const row = document.createElement("tr");
+    row.innerHTML = `
       <td>${isExh ? `${date} <span class='exh'>(EXH)</span>` : date}</td>
-      <td style="text-align:right;">
-        <span class="${awayNameClass}">${awayTeam}</span> <span class="${awayScoreClass}">${awayScore}</span>
-      </td>
+      <td><span class="${awayScore > homeScore ? 'winner-name' : ''}">${awayTeam}</span> <span class="${awayScore > homeScore ? 'winner-score' : 'score'}">${awayScore}</span></td>
       <td>—</td>
-      <td style="text-align:left;">
-        <span class="${homeScoreClass}">${homeScore}</span> <span class="${homeNameClass}">${homeTeam}</span>
-      </td>`;
-    tbody.appendChild(tr);
+      <td><span class="${homeScore > awayScore ? 'winner-score' : 'score'}">${homeScore}</span> <span class="${homeScore > awayScore ? 'winner-name' : ''}">${homeTeam}</span></td>
+    `;
+    tbody.appendChild(row);
   });
+  document.getElementById("meetDisplay").appendChild(table);
 }
-
-function filterDivision() {
-  const val = document.getElementById("divisionSelect").value;
-  renderScores(val === "all" ? allRows : allRows.filter(r => r.divisions.includes(val)));
+function renderFinals(values) {
+  const divisions = { Patriot: [], Battlefield: [], National: [], American: [] };
+  values.forEach(([date, name, teamA, scoreA, teamB, scoreB]) => {
+    const division = Object.entries(teamDivisionMap).find(([team, div]) => name.includes(team) && div)[1];
+    if (!division) return;
+    divisions[division].push({ name, teams: [[teamA, scoreA], [teamB, scoreB]] });
+  });
+  const container = document.createElement("div");
+  container.className = "finals-table";
+  Object.entries(divisions).forEach(([division, meets]) => {
+    const sorted = meets.map(m => ({
+      ...m,
+      total: m.teams.reduce((sum, [_, score]) => sum + score, 0)
+    })).sort((a, b) => b.total - a.total);
+    const table = document.createElement("table");
+    table.className = "division-table";
+    table.innerHTML = `<thead><tr><th colspan="3">${division} Division</th></tr></thead><tbody></tbody>`;
+    const tbody = table.querySelector("tbody");
+    sorted.forEach(({ name, teams }) => {
+      const [[t1, s1], [t2, s2]] = teams;
+      const row = document.createElement("tr");
+      row.innerHTML = `<td style="text-align:right">${t1} ${s1}</td><td>vs</td><td style="text-align:left">${s2} ${t2}</td>`;
+      tbody.appendChild(row);
+    });
+    container.appendChild(table);
+  });
+  document.getElementById("meetDisplay").appendChild(container);
 }
-
+function filterDivision() { renderScores(allRows); }
+function clearFilters() {
+  divisionSelect.value = "all";
+  renderScores(allRows);
+}
+function printPage() { window.print(); }
+function downloadCSV() {
+  const headers = ["Meet Date", "Meet Name", "Home Team", "Home Score", "Away Team", "Away Score", "Winner"];
+  const csv = [headers.join(",")];
+  allRows.forEach(({ data }) => {
+    csv.push([data.date, data.meetName, data.homeTeam, data.homeScore, data.awayTeam, data.awayScore, data.winner].join(","));
+  });
+  const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "rsl_meet_scores.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
 window.onload = () => loadWeekData(weekSelect.value);
 </script>
 </body>
